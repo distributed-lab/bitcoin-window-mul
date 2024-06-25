@@ -7,6 +7,7 @@ pub mod cmp;
 pub mod mul;
 pub mod naf;
 pub mod std;
+pub mod window;
 
 pub struct BigInt<const N_BITS: usize, const LIMB_SIZE: usize> {}
 

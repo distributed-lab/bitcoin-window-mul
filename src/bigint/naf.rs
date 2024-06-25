@@ -11,7 +11,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
             { binary_to_be_naf(Self::N_BITS) }
         }
     }
-    
+
     /// Takes the top stack big integer and outputs
     /// the naf representation in the alt stack
     pub fn convert_to_be_naf_bits_toaltstack() -> Script {
@@ -55,9 +55,10 @@ fn bit_add_carry() -> Script {
 }
 
 /// Converts the limb from the top stack which has `num_bits` bits in size to
-/// big-endian bits. It pushes all the bits to the alt stack
-/// except for the most significant bit. The first element in the alt stack
-/// (except for one left in the main stack) is the least significant limb.
+/// NAF representation with a size `num_bits+1`.
+/// It pushes all the bits to the alt stack except for the most significant bit.
+/// The first element in the alt stack (except for one left in the main stack)
+/// is the least significant limb.
 pub fn binary_to_be_naf(num_bits: usize) -> Script {
     script! {
         // We also have top two stack elements + carry in the front
@@ -285,17 +286,22 @@ mod test {
                     .iter()
                     .enumerate()
                     .fold(BigInt::zero(), |acc, (i, c)| {
-                        let addition = c.to_bigint().unwrap()
-                            * BigInt::pow(&2.to_bigint().unwrap(), i as u32);
+                        let addition =
+                            c.to_bigint().unwrap() * BigInt::pow(&2.to_bigint().unwrap(), i as u32);
                         acc + addition
                     });
             assert_eq!(
-                test_number, from_wnaf_value.to_biguint().unwrap(),
+                test_number,
+                from_wnaf_value.to_biguint().unwrap(),
                 "wnaf decomposition was done incorrectly"
             );
 
             wnaf_decomposition.resize(255, 0);
-            assert_eq!(wnaf_decomposition.len(), 255, "wnaf decomposition has incorrect length");
+            assert_eq!(
+                wnaf_decomposition.len(),
+                255,
+                "wnaf decomposition has incorrect length"
+            );
 
             // Launching a script
             let script = script! {
@@ -313,13 +319,16 @@ mod test {
         }
     }
 
-    /// Tests the conversion of a big integer to wnaf representation and 
+    /// Tests the conversion of a big integer to wnaf representation and
     /// additionally pushed to the alt stack.
     #[test]
     fn test_bigint_to_naf_altstack() {
         const TESTS_NUM: usize = 10;
 
-        print_script_size("u254_to_wnaf_altstack", U254::convert_to_be_naf_bits_toaltstack());
+        print_script_size(
+            "u254_to_wnaf_altstack",
+            U254::convert_to_be_naf_bits_toaltstack(),
+        );
 
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         for _ in 0..TESTS_NUM {
@@ -363,17 +372,22 @@ mod test {
                     .iter()
                     .enumerate()
                     .fold(BigInt::zero(), |acc, (i, c)| {
-                        let addition = c.to_bigint().unwrap()
-                            * BigInt::pow(&2.to_bigint().unwrap(), i as u32);
+                        let addition =
+                            c.to_bigint().unwrap() * BigInt::pow(&2.to_bigint().unwrap(), i as u32);
                         acc + addition
                     });
             assert_eq!(
-                test_number, from_wnaf_value.to_biguint().unwrap(),
+                test_number,
+                from_wnaf_value.to_biguint().unwrap(),
                 "wnaf decomposition was done incorrectly"
             );
 
             wnaf_decomposition.resize(255, 0);
-            assert_eq!(wnaf_decomposition.len(), 255, "wnaf decomposition has incorrect length");
+            assert_eq!(
+                wnaf_decomposition.len(),
+                255,
+                "wnaf decomposition has incorrect length"
+            );
 
             // Launching a script
             let script = script! {
