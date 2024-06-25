@@ -182,10 +182,11 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
             }
 
             // Clearing the precomputed values from the stack.
+            { Self::toaltstack() }
             for _ in 0..1<<WIDTH {
-                { Self::roll(1) }
                 { Self::drop() }
             }
+            { Self::fromaltstack() }
         }
     }
 }
