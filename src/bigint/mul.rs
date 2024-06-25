@@ -49,21 +49,41 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
 
     /// Precomputes values `{0*z, 1*z, 2*z, ..., 2^(WIDTH)-1}` needed for
     /// multiplication, assuming that `z` is the top stack element. However,
-    /// this is done lazily, costing `1` doubling and `2^(WIDTH-3)` additions.
+    /// this is done lazily, costing `1` doubling and `2^(WIDTH-3)` additions, which
+    /// can be done more optimally using more doublings => less additions.
     pub fn lazy_precompute_w_mul<const WIDTH: usize>() -> Script {
         assert!(WIDTH >= 2, "width should be at least 2");
 
         script! {
-            { Self::zero() } // {z, 0}
-            { Self::roll(1) } // {0, z}
-            { Self::copy(0) } // {0, z, z}
-            { Self::double(0) } // {0, z, 2z}
+            { Self::precompute_012_mul() } // Precomputing {0, z, 2*z}
             for i in 0..(1<<WIDTH)-3 {
                 // Given {0, z, 2z, ..., (i+2)z} we add (i+3)z to the end
-                { Self::copy(0) } // {0, z, ..., (i+2)z, (i+2)z}
+                { Self::copy(0) }   // {0, z, ..., (i+2)z, (i+2)z}
                 { Self::copy(i+2) } // {0, z, ..., (i+2)z, (i+2)z, z}
                 { Self::add(0, 1) } // {0, z, ..., (i+2)z, (i+3)z}
             }
+        }
+    }
+
+    /// Precomputes values `{0*z, 1*z, 2*z}` (corresponding to `WIDTH=2`) needed
+    /// for multiplication, assuming that `z` is the top stack element.
+    pub fn precompute_012_mul() -> Script {
+        script! {
+            { Self::zero() }    // {z, 0}
+            { Self::roll(1) }   // {0, z}
+            { Self::copy(0) }   // {0, z, z}
+            { Self::double(0) } // {0, z, 2*z}
+        }
+    }
+
+    /// Precomputes values `{0*z, 1*z, 2*z, 3*z}` (corresponding to `WIDTH=2`) needed
+    /// for multiplication, assuming that `z` is the top stack element.
+    pub fn precompute_2_mul() -> Script {
+        script! {
+            { Self::precompute_012_mul() }
+            { Self::copy(1) }   // {0, z, 2*z, z}
+            { Self::copy(1) }   // {0, z, 2*z, z, 2*z}
+            { Self::add(0, 1) } // {0, z, 2*z, 3*z}
         }
     }
 
@@ -71,29 +91,55 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
     /// for multiplication, assuming that `z` is the top stack element.
     pub fn precompute_3_mul() -> Script {
         script! {
-            { Self::zero() } // {z, 0}
-            { Self::roll(1) } // {0, z}
-            { Self::copy(0) } // {0, z, z}
-            { Self::double(0) } // {0, z, 2*z}
-            { Self::copy(1) } // {0, z, 2*z, z}
-            { Self::copy(1) } // {0, z, 2*z, z, 2*z}
-            { Self::add(0, 1) } // {0, z, 2*z, 3*z}
-            { Self::copy(1) } // {0, z, 2*z, 3*z, 2*z}
-            { Self::double(0) } //  {0, z, 2*z, 3*z, 4*z}
-            { Self::copy(3) } //  {0, z, 2*z, 3*z, 4*z, z}
-            { Self::copy(1) } //  {0, z, 2*z, 3*z, 4*z, z, 4*z}
-            { Self::add(0, 1) } //  {0, z, 2*z, 3*z, 4*z, 5*z}
-            { Self::copy(2) } //  {0, z, 2*z, 3*z, 4*z, 5*z, 3*z}
-            { Self::double(0) } //  {0, z, 2*z, 3*z, 4*z, 5*z, 6*z}
-            { Self::copy(5) } //  {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, z}
-            { Self::copy(1) } //  {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, z, 6*z}
-            { Self::add(0, 1) } //  {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z}
+            { Self::precompute_2_mul() }
+            { Self::copy(1) }    // {0, z, 2*z, 3*z, 2*z}
+            { Self::double(0) }  // {0, z, 2*z, 3*z, 4*z}
+            { Self::copy(3) }    // {0, z, 2*z, 3*z, 4*z, z}
+            { Self::copy(1) }    // {0, z, 2*z, 3*z, 4*z, z, 4*z}
+            { Self::add(0, 1) }  // {0, z, 2*z, 3*z, 4*z, 5*z}
+            { Self::copy(2) }    // {0, z, 2*z, 3*z, 4*z, 5*z, 3*z}
+            { Self::double(0) }  // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z}
+            { Self::copy(5) }    // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, z}
+            { Self::copy(1) }    // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, z, 6*z}
+            { Self::add(0, 1) }  // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z}
+        }
+    }
+
+    /// Precomputes values `{0*z, 1*z, ..., 7*z, ..., 14*z, 15*z}` (corresponding to `WIDTH=4`) needed
+    /// for multiplication, assuming that `z` is the top stack element.
+    pub fn precompute_4_mul() -> Script {
+        script! {
+            { Self::precompute_3_mul() } // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z}
+            { Self::copy(3) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 4*z}
+            { Self::double(0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z}
+            { Self::copy(7) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, z}
+            { Self::copy(1) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, z, 8*z}
+            { Self::add(1, 0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z}
+            { Self::copy(4) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 5*z}
+            { Self::double(0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z}
+            { Self::copy(9) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, z}
+            { Self::copy(1) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, z, 10*z}
+            { Self::add(1, 0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z}
+            { Self::copy(5) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 6*z}
+            { Self::double(0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z}
+            { Self::copy(11) }           // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, z}
+            { Self::copy(1) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, z, 12*z}
+            { Self::add(1, 0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, 13*z}
+            { Self::copy(6) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, 13*z, 7*z}
+            { Self::double(0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, 13*z, 14*z}
+            { Self::copy(13) }           // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, 13*z, 14*z, z}
+            { Self::copy(1) }            // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, 13*z, 14*z, z, 14*z}
+            { Self::add(1, 0) }          // {0, z, 2*z, 3*z, 4*z, 5*z, 6*z, 7*z, 8*z, 9*z, 10*z, 11*z, 12*z, 13*z, 14*z, 15*z}
         }
     }
 
     pub fn precompute_w_mul<const WIDTH: usize>() -> Script {
+        assert!(WIDTH >= 2, "width should be at least 2");
+
         match WIDTH {
+            2 => Self::precompute_2_mul(),
             3 => Self::precompute_3_mul(),
+            4 => Self::precompute_4_mul(),
             _ => Self::lazy_precompute_w_mul::<WIDTH>(),
         }
     }
@@ -136,10 +182,11 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
             }
 
             // Clearing the precomputed values from the stack.
+            { Self::toaltstack() }
             for _ in 0..1<<WIDTH {
-                { Self::roll(1) }
                 { Self::drop() }
             }
+            { Self::fromaltstack() }
         }
     }
 }
@@ -291,7 +338,6 @@ mod test {
         };
 
         let exec_result = execute_script(script);
-        println!("{:?}", exec_result.final_stack.len());
         assert!(exec_result.success, "lazy precompute test failed");
     }
 
@@ -301,7 +347,7 @@ mod test {
         const TESTS_NUM: usize = 10;
         const WIDTH: usize = 4;
 
-        print_script_size("254-bit mul", U254::mul_width_w::<WIDTH>());
+        print_script_size("254-bit w-width mul", U254::mul_width_w::<WIDTH>());
 
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         for _ in 0..TESTS_NUM {

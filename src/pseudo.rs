@@ -28,6 +28,70 @@ pub fn OP_BITAND() -> Script {
     }
 }
 
+/// OP_4BITMUL
+/// 
+/// Taken from https://github.com/coins/bitcoin-scripts/blob/master/op_mul.md
+pub fn OP_4BITMUL() -> Script {
+    script! {
+        0 
+        OP_TOALTSTACK
+
+        OP_DUP
+        8
+        OP_GREATERTHANOREQUAL
+        OP_IF
+            8 
+            OP_SUB
+            OP_SWAP
+            OP_DUP 
+            OP_DUP OP_ADD OP_DUP OP_ADD OP_DUP OP_ADD
+            OP_FROMALTSTACK
+            OP_ADD
+            OP_TOALTSTACK
+            OP_SWAP
+        OP_ENDIF
+
+        OP_DUP
+        4
+        OP_GREATERTHANOREQUAL
+        OP_IF
+            4 
+            OP_SUB
+            OP_SWAP
+            OP_DUP 
+            OP_DUP OP_ADD OP_DUP OP_ADD
+            OP_FROMALTSTACK
+            OP_ADD
+            OP_TOALTSTACK
+            OP_SWAP
+        OP_ENDIF
+
+        OP_DUP
+        2
+        OP_GREATERTHANOREQUAL
+        OP_IF
+            2 
+            OP_SUB
+            OP_SWAP
+            OP_DUP 
+            OP_DUP OP_ADD
+            OP_FROMALTSTACK
+            OP_ADD
+            OP_TOALTSTACK
+            OP_SWAP
+        OP_ENDIF
+
+        OP_NOT
+        OP_IF
+            OP_DROP
+            0
+        OP_ENDIF
+
+        OP_FROMALTSTACK
+        OP_ADD
+    }
+}
+
 /// OP_4ROLL
 /// The 4 items n back in the stack are moved to the top.
 pub fn OP_4ROLL() -> Script {
@@ -167,7 +231,7 @@ pub fn push_to_stack(element: usize, n: usize) -> Script {
 
 #[cfg(test)]
 mod test {
-    use crate::treepp::*;
+    use crate::{pseudo::OP_4BITMUL, treepp::*};
     use bitcoin_script::script;
 
     use crate::execute_script;
@@ -186,5 +250,28 @@ mod test {
 
         let exec_result = execute_script(script);
         assert!(exec_result.success, "trivial case (1,1) failed");
+    }
+    
+    #[test]
+    fn test_op_4bitmul() {
+        const TESTS_NUM: usize = 10;
+
+        for _ in 0..TESTS_NUM {
+            let a = rand::random::<u8>() as u32;
+            let mut b = rand::random::<u8>() as u32;
+            b = b % (1<<4);
+
+            let script = script! {
+                {a}
+                {b}
+                OP_4BITMUL
+                {a * b}
+                OP_EQUALVERIFY
+                OP_TRUE
+            };
+
+            let exec_result = execute_script(script);
+            assert!(exec_result.success, "trivial case ({}, {}) failed", a, b);
+        }
     }
 }

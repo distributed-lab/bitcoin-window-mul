@@ -1,10 +1,9 @@
-use bitcoin::opcodes::all::OP_ROLL;
 use num_bigint::BigUint;
 use num_traits::Num;
 use std::str::FromStr;
 
-use crate::bigint::BigInt;
-use crate::pseudo::push_to_stack;
+use crate::bigint::{BigInt, U254};
+use crate::pseudo::{push_to_stack, OP_4BITMUL, OP_4MUL};
 use crate::treepp::*;
 
 impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
@@ -152,6 +151,25 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
         }
     }
 
+    /// Since copy operation requires input depth to be equal to
+    /// `Self::N_LIMBS * (depth+1)`, this function normalizes the depth
+    /// to the required value.
+    fn normalize_stack_depth() -> Script {
+        if Self::N_LIMBS == U254::N_LIMBS {
+            return script! {
+                1 OP_ADD // Adding 1 to the depth
+                OP_DUP OP_4MUL {crate::pseudo::OP_2MUL()} // Multiplying 1+depth by 8
+                OP_ADD // Adding 1+depth to 8*(1+depth) to get 9*(1+depth)
+            };
+        }
+
+        script! {
+            1 OP_ADD
+            { Self::N_LIMBS }
+            OP_4BITMUL // Multiplying 1+depth by the number of limbs
+        }
+    }
+
     /// Copies the big integer located at depth to the top of the stack.
     /// Works similarly to `OP_PICK`, but for big integers.
     ///
@@ -159,17 +177,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
     /// calling `copy(1)` will copy the second element to the top of the stack.
     pub fn copy_use_stack_value() -> Script {
         script! {
-            // Assuming we got depth
-            1 OP_ADD // {depth} -> {depth + 1}
-            OP_DUP // {depth + 1} -> {depth + 1, depth + 1}
-            for _ in 0..Self::N_LIMBS-1 {
-                // At this point we have {depth+1, n*(depth+1)}
-                1 OP_PICK // {depth+1, n*(depth+1)} -> {depth+1, n*(depth+1), depth+1}
-                OP_ADD // {depth+1, (n+1)*(depth+1)}
-            }
-
-            1 OP_ROLL
-            OP_DROP
+            { Self::normalize_stack_depth() }
 
             for _ in 0..Self::N_LIMBS - 1 {
                 OP_DUP OP_PICK OP_SWAP
