@@ -7,7 +7,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
         script! {
             { Self::dup_zip(a) }
 
-            { 1 << LIMB_SIZE }
+            { Self::BASE }
 
             // A0 + B0
             limb_add_carry OP_TOALTSTACK
@@ -143,7 +143,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
 /// Optimized by: @stillsaiko
 pub fn limb_add_carry() -> Script {
     script! {
-        OP_ROT OP_ROT 
+        OP_ROT OP_ROT
         OP_ADD OP_2DUP
         OP_LESSTHANOREQUAL
         OP_TUCK
@@ -162,10 +162,10 @@ pub fn limb_add_carry() -> Script {
 /// where `sub` is `num1-num2` if `carry` is `0`, and `base+(num1-num2)` if `carry` is `1`.
 pub fn limb_sub_carry() -> Script {
     script! {
-        OP_ROT OP_ROT 
-        OP_SUB 
-        OP_DUP 
-        0 
+        OP_ROT OP_ROT
+        OP_SUB
+        OP_DUP
+        0
         OP_LESSTHAN
         OP_TUCK
         OP_IF
@@ -208,7 +208,7 @@ mod test {
     use crate::bigint::{U254, U64};
     use crate::{print_script_size, treepp::*};
     use core::ops::{Add, Rem, Shl};
-    use num_bigint::{BigUint, RandomBits};
+    use num_bigint::{BigUint, RandomBits, ToBigUint};
     use num_traits::One;
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha20Rng;
@@ -294,6 +294,79 @@ mod test {
             let script = script! {
                 { U254::push_u32_le(&a.to_u32_digits()) }
                 { U254::double(0) }
+                { U254::push_u32_le(&c.to_u32_digits()) }
+                { U254::eq_verify(1, 0) }
+                OP_TRUE
+            };
+            let exec_result = execute_script(script);
+            assert!(exec_result.success);
+        }
+
+        for _ in 0..100 {
+            let a: u64 = prng.gen();
+            let c = a.wrapping_add(a);
+
+            let script = script! {
+                { U64::push_u64_le(&[a]) }
+                { U64::double(0) }
+                { U64::push_u64_le(&[c]) }
+                { U64::eq_verify(1, 0) }
+                OP_TRUE
+            };
+            let exec_result = execute_script(script);
+            assert!(exec_result.success);
+        }
+    }
+
+    #[test]
+    fn test_16_mul() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        for _ in 0..100 {
+            let a: BigUint = prng.sample(RandomBits::new(254));
+            let c: BigUint = (16.to_biguint().unwrap() * a.clone()).rem(BigUint::one().shl(254));
+
+            let script = script! {
+                { U254::push_u32_le(&a.to_u32_digits()) }
+                { U254::double(0) }
+                { U254::double(0) }
+                { U254::double(0) }
+                { U254::double(0) }
+                { U254::push_u32_le(&c.to_u32_digits()) }
+                { U254::eq_verify(1, 0) }
+                OP_TRUE
+            };
+            let exec_result = execute_script(script);
+            assert!(exec_result.success);
+        }
+
+        for _ in 0..100 {
+            let a: u64 = prng.gen();
+            let c = a.wrapping_add(a);
+
+            let script = script! {
+                { U64::push_u64_le(&[a]) }
+                { U64::double(0) }
+                { U64::push_u64_le(&[c]) }
+                { U64::eq_verify(1, 0) }
+                OP_TRUE
+            };
+            let exec_result = execute_script(script);
+            assert!(exec_result.success);
+        }
+    }
+
+    #[test]
+    fn test_256_mul() {
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        for _ in 0..100 {
+            let a: BigUint = prng.sample(RandomBits::new(254));
+            let c: BigUint = (256.to_biguint().unwrap() * a.clone()).rem(BigUint::one().shl(254));
+
+            let script = script! {
+                { U254::push_u32_le(&a.to_u32_digits()) }
+                for _ in 0..8 {
+                    { U254::double(0) }
+                }
                 { U254::push_u32_le(&c.to_u32_digits()) }
                 { U254::eq_verify(1, 0) }
                 OP_TRUE

@@ -1,3 +1,4 @@
+use bitcoin::opcodes::all::OP_ROLL;
 use num_bigint::BigUint;
 use num_traits::Num;
 use std::str::FromStr;
@@ -144,6 +145,32 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
 
         script! {
             { depth }
+            for _ in 0..Self::N_LIMBS - 1 {
+                OP_DUP OP_PICK OP_SWAP
+            }
+            OP_1SUB OP_PICK
+        }
+    }
+
+    /// Copies the big integer located at depth to the top of the stack.
+    /// Works similarly to `OP_PICK`, but for big integers.
+    ///
+    /// For example, calling `copy(0)` will copy the top element to the top of the stack, while
+    /// calling `copy(1)` will copy the second element to the top of the stack.
+    pub fn copy_use_stack_value() -> Script {
+        script! {
+            // Assuming we got depth
+            1 OP_ADD // {depth} -> {depth + 1}
+            OP_DUP // {depth + 1} -> {depth + 1, depth + 1}
+            for _ in 0..Self::N_LIMBS-1 {
+                // At this point we have {depth+1, n*(depth+1)}
+                1 OP_PICK // {depth+1, n*(depth+1)} -> {depth+1, n*(depth+1), depth+1}
+                OP_ADD // {depth+1, (n+1)*(depth+1)}
+            }
+
+            1 OP_ROLL
+            OP_DROP
+
             for _ in 0..Self::N_LIMBS - 1 {
                 OP_DUP OP_PICK OP_SWAP
             }
@@ -374,6 +401,55 @@ mod test {
 
                 // Copy the first one (located at the depth of two)
                 { U254::copy(1) }
+
+                // Assert that the copied number is equal to the original
+                for i in 0..N_U30_LIMBS {
+                    { expected[(N_U30_LIMBS - 1 - i) as usize] }
+                    OP_EQUALVERIFY
+                }
+
+                // Dropping both numbers since they are not needed
+                { U254::drop() }
+                { U254::drop() }
+                OP_TRUE
+            };
+            let exec_result = execute_script(script);
+            assert!(exec_result.success);
+        }
+    }
+
+    /// Tests the copy operation when performed with the depth of 1 
+    /// using the variable from the stack
+    #[test]
+    fn test_copy_depth_1_from_stack() {
+        const TESTS_NUMBER: usize = 50;
+        const N_U30_LIMBS: usize = 9;
+
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+
+        for _ in 0..TESTS_NUMBER {
+            // Generating two numbers represented by 9 u32 limbs
+            let mut v = vec![];
+            for _ in 0..N_U30_LIMBS {
+                v.push(prng.gen::<i32>());
+            }
+            for _ in 0..N_U30_LIMBS {
+                v.push(prng.gen::<i32>());
+            }
+
+            // We expect to copy the first number
+            let expected = &v[0..N_U30_LIMBS];
+
+            // Defining the script
+            let script = script! {
+                // Push two numbers to the stack
+                for i in 0..N_U30_LIMBS * 2 {
+                    { v[i as usize] }
+                }
+
+                // Copy the first one (located at the depth of two)
+                { 1 }
+                { U254::copy_use_stack_value() }
 
                 // Assert that the copied number is equal to the original
                 for i in 0..N_U30_LIMBS {
