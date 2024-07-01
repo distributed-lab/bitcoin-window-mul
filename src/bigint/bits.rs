@@ -1,8 +1,8 @@
-use crate::bigint::BigInt;
-use crate::treepp::{pushable, script, Script};
+use crate::bigint::BigIntImpl;
+use crate::treepp::*;
 use std::cmp::min;
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
     pub fn convert_to_be_bits() -> Script {
         script! {
             for i in 0..Self::N_LIMBS - 1 {
@@ -207,7 +207,7 @@ pub fn limb_to_be_bits_toaltstack(num_bits: usize) -> Script {
 #[cfg(test)]
 mod test {
     use super::{limb_to_be_bits, limb_to_le_bits};
-    use crate::bigint::{U254, U64};
+    use crate::bigint::{BigInt, U254, U64};
     use crate::treepp::{execute_script, pushable};
     use bitcoin_script::script;
     use core::ops::ShrAssign;
@@ -412,7 +412,7 @@ mod test {
             }
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U254::convert_to_be_bits() }
                 for i in 0..U254::N_BITS {
                     { bits[(U254::N_BITS - 1 - i) as usize] }
@@ -436,7 +436,7 @@ mod test {
             }
 
             let script = script! {
-                { U64::push_u32_le(&a.to_u32_digits()) }
+                { U64::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U64::convert_to_be_bits() }
                 for i in 0..U64::N_BITS {
                     { bits[(U64::N_BITS - 1 - i) as usize] }
@@ -465,7 +465,7 @@ mod test {
             }
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U254::convert_to_le_bits() }
                 for i in 0..U254::N_BITS {
                     { bits[i as usize] }
@@ -489,7 +489,7 @@ mod test {
             }
 
             let script = script! {
-                { U64::push_u32_le(&a.to_u32_digits()) }
+                { U64::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U64::convert_to_le_bits() }
                 for i in 0..U64::N_BITS {
                     { bits[i as usize] }
@@ -518,7 +518,7 @@ mod test {
             }
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U254::convert_to_be_bits_toaltstack() }
                 for i in 0..U254::N_BITS {
                     OP_FROMALTSTACK
@@ -543,7 +543,7 @@ mod test {
             }
 
             let script = script! {
-                { U64::push_u32_le(&a.to_u32_digits()) }
+                { U64::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U64::convert_to_be_bits_toaltstack() }
                 for i in 0..U64::N_BITS {
                     OP_FROMALTSTACK
@@ -573,7 +573,7 @@ mod test {
             }
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U254::convert_to_le_bits_toaltstack() }
                 for i in 0..U254::N_BITS {
                     OP_FROMALTSTACK
@@ -598,7 +598,7 @@ mod test {
             }
 
             let script = script! {
-                { U64::push_u32_le(&a.to_u32_digits()) }
+                { U64::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 { U64::convert_to_le_bits_toaltstack() }
                 for i in 0..U64::N_BITS {
                     OP_FROMALTSTACK

@@ -1,8 +1,9 @@
-use crate::bigint::BigInt;
+use crate::bigint::BigIntImpl;
 use crate::pseudo::{OP_3DROP, OP_BITAND};
 use crate::treepp::*;
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
+#[allow(non_snake_case)]
+impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
     /// Takes the top stack big integer and outputs
     /// the naf representation in the main stack
     pub fn convert_to_be_naf_bits() -> Script {
@@ -95,10 +96,10 @@ pub fn binary_to_be_naf(num_bits: usize) -> Script {
 mod test {
     use crate::bigint::bits::limb_to_be_bits_toaltstack;
     use crate::bigint::naf::binary_to_be_naf;
-    use crate::bigint::U254;
+    use crate::bigint::{BigInt, U254};
     use crate::{print_script_size, treepp::*};
     use ark_ff::{One, Zero};
-    use num_bigint::{BigInt, BigUint, RandomBits, ToBigInt};
+    use num_bigint::{BigInt as NumBigInt, BigUint, RandomBits, ToBigInt};
     use num_traits::FromPrimitive;
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha20Rng;
@@ -253,10 +254,10 @@ mod test {
                 let mut decomposition = vec![];
                 let mut k = test_number.to_bigint().unwrap();
 
-                while k.ge(&BigInt::one()) {
-                    let modulo_2: BigInt = k.clone() % 2;
+                while k.ge(&NumBigInt::one()) {
+                    let modulo_2: NumBigInt = k.clone() % 2;
 
-                    let modulo_4: BigInt = k.clone() % 4;
+                    let modulo_4: NumBigInt = k.clone() % 4;
                     let (_, modulo_4) = modulo_4.to_u32_digits();
                     let modulo_4 = {
                         if modulo_4.len() == 0 {
@@ -266,10 +267,10 @@ mod test {
                         }
                     };
 
-                    if modulo_2.eq(&BigInt::one()) {
+                    if modulo_2.eq(&NumBigInt::one()) {
                         let c: i32 = 2 - modulo_4 as i32;
                         decomposition.push(c);
-                        k = k.checked_sub(&BigInt::from_i32(c).unwrap()).unwrap();
+                        k = k.checked_sub(&NumBigInt::from_i32(c).unwrap()).unwrap();
                     } else {
                         decomposition.push(0i32);
                     }
@@ -285,9 +286,9 @@ mod test {
                 wnaf_decomposition
                     .iter()
                     .enumerate()
-                    .fold(BigInt::zero(), |acc, (i, c)| {
-                        let addition =
-                            c.to_bigint().unwrap() * BigInt::pow(&2.to_bigint().unwrap(), i as u32);
+                    .fold(NumBigInt::zero(), |acc, (i, c)| {
+                        let addition = c.to_bigint().unwrap()
+                            * NumBigInt::pow(&2.to_bigint().unwrap(), i as u32);
                         acc + addition
                     });
             assert_eq!(
@@ -305,7 +306,7 @@ mod test {
 
             // Launching a script
             let script = script! {
-                { U254::push_u32_le(&test_number.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
                 { U254::convert_to_be_naf_bits() }
                 for coefficient in wnaf_decomposition.iter().rev() {
                     { *coefficient }
@@ -339,10 +340,10 @@ mod test {
                 let mut decomposition = vec![];
                 let mut k = test_number.to_bigint().unwrap();
 
-                while k.ge(&BigInt::one()) {
-                    let modulo_2: BigInt = k.clone() % 2;
+                while k.ge(&NumBigInt::one()) {
+                    let modulo_2: NumBigInt = k.clone() % 2;
 
-                    let modulo_4: BigInt = k.clone() % 4;
+                    let modulo_4: NumBigInt = k.clone() % 4;
                     let (_, modulo_4) = modulo_4.to_u32_digits();
                     let modulo_4 = {
                         if modulo_4.len() == 0 {
@@ -352,10 +353,10 @@ mod test {
                         }
                     };
 
-                    if modulo_2.eq(&BigInt::one()) {
+                    if modulo_2.eq(&NumBigInt::one()) {
                         let c: i32 = 2 - modulo_4 as i32;
                         decomposition.push(c);
-                        k = k.checked_sub(&BigInt::from_i32(c).unwrap()).unwrap();
+                        k = k.checked_sub(&NumBigInt::from_i32(c).unwrap()).unwrap();
                     } else {
                         decomposition.push(0i32);
                     }
@@ -371,9 +372,9 @@ mod test {
                 wnaf_decomposition
                     .iter()
                     .enumerate()
-                    .fold(BigInt::zero(), |acc, (i, c)| {
-                        let addition =
-                            c.to_bigint().unwrap() * BigInt::pow(&2.to_bigint().unwrap(), i as u32);
+                    .fold(NumBigInt::zero(), |acc, (i, c)| {
+                        let addition = c.to_bigint().unwrap()
+                            * NumBigInt::pow(&2.to_bigint().unwrap(), i as u32);
                         acc + addition
                     });
             assert_eq!(
@@ -391,7 +392,7 @@ mod test {
 
             // Launching a script
             let script = script! {
-                { U254::push_u32_le(&test_number.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
                 { U254::convert_to_be_naf_bits_toaltstack() }
                 for coefficient in wnaf_decomposition {
                     OP_FROMALTSTACK

@@ -29,21 +29,21 @@ pub fn OP_BITAND() -> Script {
 }
 
 /// OP_4BITMUL
-/// 
+///
 /// Taken from https://github.com/coins/bitcoin-scripts/blob/master/op_mul.md
 pub fn OP_4BITMUL() -> Script {
     script! {
-        0 
+        0
         OP_TOALTSTACK
 
         OP_DUP
         8
         OP_GREATERTHANOREQUAL
         OP_IF
-            8 
+            8
             OP_SUB
             OP_SWAP
-            OP_DUP 
+            OP_DUP
             OP_DUP OP_ADD OP_DUP OP_ADD OP_DUP OP_ADD
             OP_FROMALTSTACK
             OP_ADD
@@ -55,10 +55,10 @@ pub fn OP_4BITMUL() -> Script {
         4
         OP_GREATERTHANOREQUAL
         OP_IF
-            4 
+            4
             OP_SUB
             OP_SWAP
-            OP_DUP 
+            OP_DUP
             OP_DUP OP_ADD OP_DUP OP_ADD
             OP_FROMALTSTACK
             OP_ADD
@@ -70,10 +70,10 @@ pub fn OP_4BITMUL() -> Script {
         2
         OP_GREATERTHANOREQUAL
         OP_IF
-            2 
+            2
             OP_SUB
             OP_SWAP
-            OP_DUP 
+            OP_DUP
             OP_DUP OP_ADD
             OP_FROMALTSTACK
             OP_ADD
@@ -221,7 +221,8 @@ pub fn OP_NDUP(n: usize) -> Script {
     }
 }
 
-pub fn push_to_stack(element: usize, n: usize) -> Script {
+/// Pushes the same element `n` times.
+pub fn OP_CLONE(element: usize, n: usize) -> Script {
     script! {
         if n >= 1 {
             {element} {OP_NDUP(n - 1)}
@@ -251,7 +252,7 @@ mod test {
         let exec_result = execute_script(script);
         assert!(exec_result.success, "trivial case (1,1) failed");
     }
-    
+
     #[test]
     fn test_op_4bitmul() {
         const TESTS_NUM: usize = 10;
@@ -259,7 +260,7 @@ mod test {
         for _ in 0..TESTS_NUM {
             let a = rand::random::<u8>() as u32;
             let mut b = rand::random::<u8>() as u32;
-            b = b % (1<<4);
+            b = b % (1 << 4);
 
             let script = script! {
                 {a}

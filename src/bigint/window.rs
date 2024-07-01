@@ -1,10 +1,10 @@
-use crate::bigint::BigInt;
+use super::BigIntImpl;
 use crate::treepp::*;
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
     /// Takes the top stack big integer and outputs
-    /// the low-endian w-width form in the alt stack 
-    pub fn convert_to_le_w_width_form_toaltstack<const WIDTH: usize>() -> Script {
+    /// the low-endian w-width form in the alt stack
+    pub(super) fn convert_to_le_w_width_form_toaltstack<const WIDTH: usize>() -> Script {
         script! {
             { Self::convert_to_be_bits_toaltstack() }
             { binary_to_w_width_form_altstack::<WIDTH>(Self::N_BITS) }
@@ -12,8 +12,8 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
     }
 
     /// Takes the top stack big integer and outputs
-    /// the big-endian w-width form in the alt stack 
-    pub fn convert_to_be_w_width_form_toaltstack<const WIDTH: usize>() -> Script {
+    /// the big-endian w-width form in the alt stack
+    pub(super) fn convert_to_be_w_width_form_toaltstack<const WIDTH: usize>() -> Script {
         let decomposition_size = (Self::N_BITS + WIDTH - 1) / WIDTH;
 
         script! {
@@ -79,10 +79,10 @@ pub fn binary_to_w_width_form_altstack<const WIDTH: usize>(num_bits: usize) -> S
 mod test {
     use crate::bigint::bits::limb_to_be_bits_toaltstack;
     use crate::bigint::window::binary_to_w_width_form_altstack;
-    use crate::bigint::U254;
+    use crate::bigint::{BigInt, U254};
     use crate::{print_script_size, treepp::*};
     use ark_ff::{One, Zero};
-    use num_bigint::{BigInt, BigUint, RandomBits, ToBigInt, ToBigUint};
+    use num_bigint::{BigInt as NumBigInt, BigUint as NumBigUInt, RandomBits, ToBigInt, ToBigUint};
     use num_traits::FromPrimitive;
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha20Rng;
@@ -202,7 +202,7 @@ mod test {
 
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         for _ in 0..TESTS_NUM {
-            let test_number: BigUint = prng.sample(RandomBits::new(254));
+            let test_number: NumBigUInt = prng.sample(RandomBits::new(254));
 
             // Decomposing a number into wnaf representation
             let mut decomposition = {
@@ -210,9 +210,9 @@ mod test {
                 let mut k = test_number.clone();
                 let window_size = (1 << WINDOW_WIDTH).to_biguint().unwrap();
 
-                while k.ge(&BigUint::one()) {
+                while k.ge(&NumBigUInt::one()) {
                     // TODO: I do not know what I am doing with so many clones, so FIXME later please
-                    let c: BigUint = k.clone() % window_size.clone();
+                    let c: NumBigUInt = k.clone() % window_size.clone();
                     decomposition.push(c.clone());
                     k = k - c;
                     k = k / window_size.clone();
@@ -226,9 +226,10 @@ mod test {
                 decomposition
                     .iter()
                     .enumerate()
-                    .fold(BigInt::zero(), |acc, (i, c)| {
-                        let power_of_two =
-                            BigInt::from_u8(2u8).unwrap().pow((WINDOW_WIDTH * i) as u32);
+                    .fold(NumBigInt::zero(), |acc, (i, c)| {
+                        let power_of_two = NumBigInt::from_u8(2u8)
+                            .unwrap()
+                            .pow((WINDOW_WIDTH * i) as u32);
                         acc + c.to_bigint().unwrap() * power_of_two
                     });
             assert_eq!(
@@ -260,7 +261,7 @@ mod test {
 
             // Launching a script in le order
             let script = script! {
-                { U254::push_u32_le(&test_number.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
                 { U254::convert_to_le_w_width_form_toaltstack::<WINDOW_WIDTH>() }
                 for coefficient in decomposition.iter() {
                     OP_FROMALTSTACK
@@ -276,7 +277,7 @@ mod test {
 
             // Launching a script in be order
             let script = script! {
-                { U254::push_u32_le(&test_number.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
                 { U254::convert_to_be_w_width_form_toaltstack::<WINDOW_WIDTH>() }
                 for coefficient in decomposition.iter().rev() {
                     OP_FROMALTSTACK

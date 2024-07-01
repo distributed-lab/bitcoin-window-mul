@@ -15,6 +15,7 @@ use bitcoin_scriptexec::{Exec, ExecCtx, ExecError, ExecStats, Options, Stack, Tx
 
 pub mod bigint;
 pub mod pseudo;
+pub mod traits;
 
 /// A wrapper for the stack types to print them better.
 pub struct FmtStack(Stack);

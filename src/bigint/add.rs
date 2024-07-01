@@ -1,44 +1,13 @@
-use crate::bigint::BigInt;
+use crate::bigint::{BigInt, BigIntImpl};
 use crate::treepp::*;
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
-    /// Doubles the BigInt
-    pub fn double(a: u32) -> Script {
-        script! {
-            { Self::dup_zip(a) }
-
-            { Self::BASE }
-
-            // A0 + B0
-            limb_add_carry OP_TOALTSTACK
-
-            // from     A1      + B1        + carry_0
-            //   to     A{N-2}  + B{N-2}    + carry_{N-3}
-            for _ in 0..Self::N_LIMBS - 2 {
-                OP_ROT
-                OP_ADD
-                OP_SWAP
-                limb_add_carry OP_TOALTSTACK
-            }
-
-            // A{N-1} + B{N-1} + carry_{N-2}
-            OP_NIP
-            OP_ADD
-            { limb_add_nocarry(Self::HEAD_OFFSET) }
-
-            for _ in 0..Self::N_LIMBS - 1 {
-                OP_FROMALTSTACK
-            }
-        }
-    }
-
-    /// Compute the sum of two `BigInt`s from the stack at specified depths.
-    ///
-    /// Works similarly to the `OP_ADD`, but for `BigInt`s.
-    pub fn add(depth_1: u32, depth_2: u32) -> Script {
+#[allow(non_snake_case)]
+impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+    /// Adds two [`BigInt`]s from the stack, resulting in a new [`BigInt`] at the top of the stack.
+    pub(super) fn handle_OP_ADD(depth_1: usize, depth_2: usize) -> Script {
         script! {
             // Zip the two BigInts from the stack
-            { Self::zip(depth_1, depth_2) }
+            { Self::OP_ZIP(depth_1, depth_2) }
 
             // Push the base to the stack
             { Self::BASE }
@@ -72,11 +41,42 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
         }
     }
 
-    /// Subtracts the top `BigInt` from the second top `BigInt` on the stack.
-    pub fn sub(depth_1: u32, depth_2: u32) -> Script {
+    /// Doubles the [`BigInt`] at specified `depth`, resulting
+    /// in a new [`BigInt`] at the top of the stack.
+    pub(super) fn handle_OP2MUL(depth: usize) -> Script {
+        script! {
+            { Self::OP_DUPZIP(depth) }
+
+            { Self::BASE }
+
+            // A0 + B0
+            limb_add_carry OP_TOALTSTACK
+
+            // from     A1      + B1        + carry_0
+            //   to     A{N-2}  + B{N-2}    + carry_{N-3}
+            for _ in 0..Self::N_LIMBS - 2 {
+                OP_ROT
+                OP_ADD
+                OP_SWAP
+                limb_add_carry OP_TOALTSTACK
+            }
+
+            // A{N-1} + B{N-1} + carry_{N-2}
+            OP_NIP
+            OP_ADD
+            { limb_add_nocarry(Self::HEAD_OFFSET) }
+
+            for _ in 0..Self::N_LIMBS - 1 {
+                OP_FROMALTSTACK
+            }
+        }
+    }
+
+    /// Subtracts the top [`BigInt`] from the second top [`BigInt`] on the stack.
+    pub(super) fn handle_OPSUB(depth_1: usize, depth_2: usize) -> Script {
         script! {
             // Zip the two BigInts from the stack
-            { Self::zip(depth_1, depth_2) }
+            { Self::OP_ZIP(depth_1, depth_2) }
 
             // Push the base to the stack
             { Self::BASE }
@@ -105,8 +105,8 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
         }
     }
 
-    /// Adds one to the top `BigInt` on the stack.
-    pub fn increment() -> Script {
+    /// Adds one to the top [`BigInt`] on the stack.
+    pub(super) fn handle_OPADD1() -> Script {
         script! {
             1
             { 1 << LIMB_SIZE }
@@ -205,7 +205,7 @@ pub fn limb_sub_nocarry(head_offset: u32) -> Script {
 #[cfg(test)]
 mod test {
     use crate::bigint::add::{limb_add_carry, limb_sub_carry};
-    use crate::bigint::{U254, U64};
+    use crate::bigint::{BigInt, Comparable, U254, U64};
     use crate::{print_script_size, treepp::*};
     use core::ops::{Add, Rem, Shl};
     use num_bigint::{BigUint, RandomBits, ToBigUint};
@@ -215,7 +215,7 @@ mod test {
 
     #[test]
     fn test_add() {
-        print_script_size("254_bit_add", U254::add(1, 0));
+        print_script_size("254_bit_add", U254::OP_ADD(1, 0));
 
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         for _ in 0..100 {
@@ -224,11 +224,11 @@ mod test {
             let c: BigUint = (a.clone() + b.clone()).rem(BigUint::one().shl(254));
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
-                { U254::push_u32_le(&b.to_u32_digits()) }
-                { U254::add(1, 0) }
-                { U254::push_u32_le(&c.to_u32_digits()) }
-                { U254::eq_verify(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&b.to_u32_digits()) }
+                { U254::OP_ADD(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&c.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
 
@@ -242,11 +242,11 @@ mod test {
             let c = a.wrapping_add(b);
 
             let script = script! {
-                { U64::push_u64_le(&[a]) }
-                { U64::push_u64_le(&[b]) }
-                { U64::add(1, 0) }
-                { U64::push_u64_le(&[c]) }
-                { U64::eq_verify(1, 0) }
+                { U64::OP_PUSHU64LESLICE(&[a]) }
+                { U64::OP_PUSHU64LESLICE(&[b]) }
+                { U64::OP_ADD(1, 0) }
+                { U64::OP_PUSHU64LESLICE(&[c]) }
+                { U64::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
 
@@ -257,7 +257,7 @@ mod test {
 
     #[test]
     fn test_sub() {
-        print_script_size("254_bit_sub", U254::sub(1, 0));
+        print_script_size("254_bit_sub", U254::OP_SUB(1, 0));
 
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         for _ in 0..100 {
@@ -269,11 +269,11 @@ mod test {
             let c: BigUint = (a.clone() - b.clone()).rem(BigUint::one().shl(254));
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
-                { U254::push_u32_le(&b.to_u32_digits()) }
-                { U254::sub(1, 0) }
-                { U254::push_u32_le(&c.to_u32_digits()) }
-                { U254::eq_verify(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&b.to_u32_digits()) }
+                { U254::OP_SUB(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&c.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
 
@@ -284,7 +284,7 @@ mod test {
 
     #[test]
     fn test_double() {
-        print_script_size("u254_double", U254::double(0));
+        print_script_size("u254_double", U254::OP_2MUL(0));
 
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         for _ in 0..100 {
@@ -292,10 +292,10 @@ mod test {
             let c: BigUint = (a.clone() + a.clone()).rem(BigUint::one().shl(254));
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
-                { U254::double(0) }
-                { U254::push_u32_le(&c.to_u32_digits()) }
-                { U254::eq_verify(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
+                { U254::OP_2MUL(0) }
+                { U254::OP_PUSHU32LESLICE(&c.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);
@@ -307,10 +307,10 @@ mod test {
             let c = a.wrapping_add(a);
 
             let script = script! {
-                { U64::push_u64_le(&[a]) }
-                { U64::double(0) }
-                { U64::push_u64_le(&[c]) }
-                { U64::eq_verify(1, 0) }
+                { U64::OP_PUSHU64LESLICE(&[a]) }
+                { U64::OP_2MUL(0) }
+                { U64::OP_PUSHU64LESLICE(&[c]) }
+                { U64::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);
@@ -326,13 +326,13 @@ mod test {
             let c: BigUint = (16.to_biguint().unwrap() * a.clone()).rem(BigUint::one().shl(254));
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
-                { U254::double(0) }
-                { U254::double(0) }
-                { U254::double(0) }
-                { U254::double(0) }
-                { U254::push_u32_le(&c.to_u32_digits()) }
-                { U254::eq_verify(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
+                { U254::OP_2MUL(0) }
+                { U254::OP_2MUL(0) }
+                { U254::OP_2MUL(0) }
+                { U254::OP_2MUL(0) }
+                { U254::OP_PUSHU32LESLICE(&c.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);
@@ -344,10 +344,10 @@ mod test {
             let c = a.wrapping_add(a);
 
             let script = script! {
-                { U64::push_u64_le(&[a]) }
-                { U64::double(0) }
-                { U64::push_u64_le(&[c]) }
-                { U64::eq_verify(1, 0) }
+                { U64::OP_PUSHU64LESLICE(&[a]) }
+                { U64::OP_2MUL(0) }
+                { U64::OP_PUSHU64LESLICE(&[c]) }
+                { U64::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);
@@ -363,12 +363,12 @@ mod test {
             let c: BigUint = (256.to_biguint().unwrap() * a.clone()).rem(BigUint::one().shl(254));
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
                 for _ in 0..8 {
-                    { U254::double(0) }
+                    { U254::OP_2MUL(0) }
                 }
-                { U254::push_u32_le(&c.to_u32_digits()) }
-                { U254::eq_verify(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&c.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);
@@ -380,10 +380,10 @@ mod test {
             let c = a.wrapping_add(a);
 
             let script = script! {
-                { U64::push_u64_le(&[a]) }
-                { U64::double(0) }
-                { U64::push_u64_le(&[c]) }
-                { U64::eq_verify(1, 0) }
+                { U64::OP_PUSHU64LESLICE(&[a]) }
+                { U64::OP_2MUL(0) }
+                { U64::OP_PUSHU64LESLICE(&[c]) }
+                { U64::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);
@@ -471,10 +471,10 @@ mod test {
             let c: BigUint = (a.clone().add(BigUint::one())).rem(BigUint::one().shl(254));
 
             let script = script! {
-                { U254::push_u32_le(&a.to_u32_digits()) }
-                { U254::increment() }
-                { U254::push_u32_le(&c.to_u32_digits()) }
-                { U254::eq_verify(1, 0) }
+                { U254::OP_PUSHU32LESLICE(&a.to_u32_digits()) }
+                { U254::OP_ADD1() }
+                { U254::OP_PUSHU32LESLICE(&c.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);
@@ -486,10 +486,10 @@ mod test {
             let c = a.wrapping_add(1u64);
 
             let script = script! {
-                { U64::push_u64_le(&[a]) }
-                { U64::increment() }
-                { U64::push_u64_le(&[c]) }
-                { U64::eq_verify(1, 0) }
+                { U64::OP_PUSHU64LESLICE(&[a]) }
+                { U64::OP_ADD1() }
+                { U64::OP_PUSHU64LESLICE(&[c]) }
+                { U64::OP_EQUALVERIFY(1, 0) }
                 OP_TRUE
             };
             let exec_result = execute_script(script);

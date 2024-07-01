@@ -1,5 +1,7 @@
-use crate::pseudo::push_to_stack;
-use crate::treepp::*;
+use crate::{
+    traits::{bigint::BigInt, comparable::Comparable},
+    treepp::*,
+};
 
 pub mod add;
 pub mod bits;
@@ -7,21 +9,121 @@ pub mod cmp;
 pub mod mul;
 pub mod naf;
 pub mod std;
+pub mod u508;
 pub mod window;
 
-pub struct BigInt<const N_BITS: usize, const LIMB_SIZE: usize> {}
+/// Structure representing a big integer with `N_BITS` bits and `LIMB_SIZE` bits per limb
+/// implementing the [`BigInt`] trait.
+pub struct BigIntImpl<const N_BITS: usize, const LIMB_SIZE: usize> {}
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
-    pub const N_BITS: usize = N_BITS;
-    pub const N_LIMBS: usize = (N_BITS + LIMB_SIZE - 1) / LIMB_SIZE;
-    pub const BASE: u32 = 1u32 << LIMB_SIZE;
-    pub const HEAD: usize = N_BITS - (Self::N_LIMBS - 1) * LIMB_SIZE;
-    pub const HEAD_OFFSET: u32 = 1u32 << Self::HEAD;
+impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+    /// Number of bits of the big integer
+    const N_BITS: usize = N_BITS;
+    /// Number of bits per limb
+    const N_LIMBS: usize = (N_BITS + LIMB_SIZE - 1) / LIMB_SIZE;
+    /// Base of the big integer is u32
+    const BASE: u32 = 1u32 << LIMB_SIZE;
+    /// Numbers of bits in the head limb
+    const HEAD: usize = N_BITS - (Self::N_LIMBS - 1) * LIMB_SIZE;
+    /// Head maximum value + 1
+    const HEAD_OFFSET: u32 = 1u32 << Self::HEAD;
+}
 
-    pub fn zero() -> Script {
-        push_to_stack(0, Self::N_LIMBS as usize)
+impl<const N_BITS: usize, const LIMB_SIZE: usize> Comparable for BigIntImpl<N_BITS, LIMB_SIZE> {
+    fn OP_EQUAL(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_EQUAL(depth_1, depth_2)
+    }
+    fn OP_EQUALVERIFY(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_EQUALVERIFY(depth_1, depth_2)
+    }
+    fn OP_ISZERO(depth: usize) -> Script {
+        Self::handle_OP_ISZERO(depth)
+    }
+    fn OP_GREATEROREQUAL(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_GREATEROREQUAL(depth_1, depth_2)
+    }
+    fn OP_GREATERTHAN(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_GREATERTHAN(depth_1, depth_2)
+    }
+    fn OP_LESSOREQUAL(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_LESSOREQUAL(depth_1, depth_2)
+    }
+    fn OP_LESSTHAN(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_LESSTHAN(depth_1, depth_2)
+    }
+    fn OP_NOTEQUAL(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_NOTEQUAL(depth_1, depth_2)
     }
 }
 
-pub type U254 = BigInt<254, 30>;
-pub type U64 = BigInt<64, 16>;
+#[allow(non_snake_case)]
+impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt for BigIntImpl<N_BITS, LIMB_SIZE> {
+    fn OP_0() -> Script {
+        Self::handle_OP_0()
+    }
+    fn OP_1() -> Script {
+        Self::handle_OP_1()
+    }
+    fn OP_PUSHDECSTR(dec_str: &str) -> Script {
+        Self::handle_OP_PUSHDECSTR(dec_str)
+    }
+    fn OP_PUSHHEXSTR(hex_str: &str) -> Script {
+        Self::handle_OP_PUSHHEX(hex_str)
+    }
+    fn OP_DROP() -> Script {
+        Self::handle_OP_DROP()
+    }
+    fn OP_FROMALTSTACK() -> Script {
+        Self::handle_OP_FROMALTSTACK()
+    }
+    fn OP_TOALTSTACK() -> Script {
+        Self::handle_OP_TOALTSTACK()
+    }
+    fn OP_PICK(depth: usize) -> Script {
+        Self::handle_OP_PICK(depth)
+    }
+    fn OP_PICKSTACK() -> Script {
+        Self::handle_OP_PICKSTACK()
+    }
+    fn OP_PICKZIP(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_PICKZIP(depth_1, depth_2)
+    }
+    fn OP_PUSHU32LESLICE(slice: &[u32]) -> Script {
+        Self::handle_OP_PUSHU32LESLICE(slice)
+    }
+    fn OP_PUSHU64LESLICE(slice: &[u64]) -> Script {
+        Self::handle_OP_PUSHU64LESLICE(slice)
+    }
+    fn OP_ROLL(depth: usize) -> Script {
+        Self::handle_OP_ROLL(depth)
+    }
+    fn OP_SWAP() -> Script {
+        Self::handle_OP_SWAP()
+    }
+    fn OP_ZIP(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_ZIP(depth_1, depth_2)
+    }
+    fn OP_DUPZIP(depth: usize) -> Script {
+        Self::handle_OP_DUPZIP(depth)
+    }
+
+    // --- Arithmetic operations ---
+    fn OP_ADD(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_ADD(depth_1, depth_2)
+    }
+    fn OP_ADD1() -> Script {
+        Self::handle_OPADD1()
+    }
+    fn OP_SUB(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OPSUB(depth_1, depth_2)
+    }
+    fn OP_2MUL(depth: usize) -> Script {
+        Self::handle_OP2MUL(depth)
+    }
+    fn OP_MUL() -> Script {
+        Self::mul_width_w::<3>()
+    }
+}
+
+pub type U254 = BigIntImpl<254, 30>;
+pub type U64 = BigIntImpl<64, 16>;
