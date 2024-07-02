@@ -47,7 +47,7 @@ impl<T: NonNativeLimbInteger, const WIDTH: usize> Windowable
     fn OP_TOLEWINDOWEDFORM_TOALTSTACK() -> Script {
         script! {
             { T::OP_TOBEBITS_TOALTSTACK() }
-            { binary_to_windowed_toaltstack::<WIDTH>(T::N_BITS) }
+            { binary_to_windowed_form_toaltstack::<WIDTH>(T::N_BITS) }
         }
     }
 
@@ -209,32 +209,34 @@ pub fn binary_to_windowed_form<const WIDTH: usize>(num_bits: usize) -> Script {
     let decomposition_size = get_decomposition_size(num_bits, WIDTH);
     let head_size = num_bits - (decomposition_size - 1) * WIDTH;
 
-    script! {
-        for i in 0..decomposition_size {
+    // Array of chunk sizes: the last chunk may have a different size from `WIDTH`
+    let chunk_sizes: Vec<_> = (0..decomposition_size)
+        .map(|i| {
             if i + 1 == decomposition_size {
-                // Picking the remaining bits in head and calculating 1<<j
-                for j in 0..head_size {
-                    OP_FROMALTSTACK
-                    OP_IF { 1 << j } OP_ELSE { 0 } OP_ENDIF
-                }
-                // Adding the coefficients (we need head_size-1 add ops)
-                for _ in 0..head_size-1 { OP_ADD }
-            } else {
-                // Picking top w bits from the stack and calculating 1<<j
-                for j in 0..WIDTH {
-                    OP_FROMALTSTACK
-                    OP_IF { 1 << j } OP_ELSE { 0 } OP_ENDIF
-                }
-                // Adding the coefficients (we need WIDTH-1 add ops)
-                for _ in 0..WIDTH-1 { OP_ADD }
+                return head_size;
             }
+
+            WIDTH
+        })
+        .collect();
+
+    script! {
+        for size in chunk_sizes {
+            // Picking top {size} bits from the stack and calculating 1<<j
+            for j in 0..size {
+                OP_FROMALTSTACK
+                OP_IF { 1 << j } OP_ELSE { 0 } OP_ENDIF
+            }
+
+            // Adding the coefficients (we need head_size-1 add ops)
+            for _ in 0..size-1 { OP_ADD }
         }
     }
 }
 
 /// Converts the limb from the top stack which has `num_bits` bits in size to
 /// 3-width representation. It pushes all the coefficients to the alt stack
-pub fn binary_to_windowed_toaltstack<const WIDTH: usize>(num_bits: usize) -> Script {
+pub fn binary_to_windowed_form_toaltstack<const WIDTH: usize>(num_bits: usize) -> Script {
     // The number of coefficients in the w-width form
     let decomposition_size = get_decomposition_size(num_bits, WIDTH);
 

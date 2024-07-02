@@ -2,7 +2,7 @@
 mod test {
     use crate::bigint::bits::bits::limb_to_be_bits_toaltstack;
     use crate::bigint::window::precompute::WindowedPrecomputeTable;
-    use crate::bigint::window::{binary_to_windowed_toaltstack, NonNativeWindowedBigIntImpl};
+    use crate::bigint::window::{binary_to_windowed_form_toaltstack, NonNativeWindowedBigIntImpl};
     use crate::bigint::U254;
     use crate::traits::arithmeticable::Arithmeticable;
     use crate::traits::comparable::Comparable;
@@ -51,7 +51,7 @@ mod test {
             let script = script! {
                 { limb } // 30-bit number
                 { limb_to_be_bits_toaltstack(LIMB_BIT_SIZE) }
-                { binary_to_windowed_toaltstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
+                { binary_to_windowed_form_toaltstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
 
                 for coefficient in decomposition {
                     OP_FROMALTSTACK
@@ -102,7 +102,7 @@ mod test {
             let script = script! {
                 { limb } // 30-bit number
                 { limb_to_be_bits_toaltstack(LIMB_BIT_SIZE) }
-                { binary_to_windowed_toaltstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
+                { binary_to_windowed_form_toaltstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
 
                 for coefficient in decomposition {
                     OP_FROMALTSTACK
