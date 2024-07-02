@@ -11,8 +11,9 @@ use crate::{
     treepp::*,
 };
 
-pub mod mul;
 pub mod precompute;
+
+#[cfg(test)]
 pub mod test;
 
 /// Structure representing a non-native big limb integer with the parameter
@@ -29,7 +30,7 @@ where
     T: NonNativeLimbInteger,
 {
     /// Number of coefficients in the w-width form
-    const DECOMPOSITION_SIZE: usize = get_decomposition_size(T::N_BITS, WIDTH);
+    pub const DECOMPOSITION_SIZE: usize = get_decomposition_size(T::N_BITS, WIDTH);
 }
 
 /// Calculates the number of coefficients in the w-width form

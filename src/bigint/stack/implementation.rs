@@ -101,8 +101,8 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
             .iter()
             .flat_map(|v| {
                 [
-                    (v & 0xffffffffu64) as u32,
-                    ((v >> 32) & 0xffffffffu64) as u32,
+                    (v & (u32::MAX as u64)) as u32,
+                    ((v >> 32) & (u32::MAX as u64)) as u32,
                 ]
             })
             .collect::<Vec<u32>>();

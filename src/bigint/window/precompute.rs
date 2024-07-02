@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::traits::integer::NonNativeLimbInteger;
 use crate::treepp::*;
 
-pub(super) struct WindowedPrecomputeTable<T, const WIDTH: usize>
+pub(in super::super) struct WindowedPrecomputeTable<T, const WIDTH: usize>
 where
     T: NonNativeLimbInteger,
 {
@@ -87,7 +87,7 @@ where
     /// multiplication, assuming that `z` is the top stack element. However,
     /// this is done lazily, costing `1` doubling and `2^(WIDTH-3)` additions, which
     /// can be done more optimally using more doublings => less additions.
-    pub(super) fn lazy_initialize() -> Script {
+    pub fn lazy_initialize() -> Script {
         assert!(WIDTH >= 2, "width should be at least 2");
 
         script! {
@@ -104,7 +104,7 @@ where
     /// Precomputes values `{0*z, 1*z, 2*z, ..., 2^(WIDTH)-1}` needed for
     /// multiplication, assuming that `z` is the top stack element. The method
     /// is well-optimized for `WIDTH <= 4`.
-    pub(super) fn initialize() -> Script {
+    pub fn initialize() -> Script {
         assert!(WIDTH >= 2, "width should be at least 2");
 
         match WIDTH {

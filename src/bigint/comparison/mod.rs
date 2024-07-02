@@ -1,4 +1,4 @@
-pub mod cmp;
+pub mod implementation;
 
 #[cfg(test)]
 pub mod test;

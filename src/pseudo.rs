@@ -1,3 +1,6 @@
+//! Pseudo-ops are operations that are not part of the Bitcoin Script language, but are useful for
+//! implementing more complex scripts.
+
 #![allow(non_snake_case)]
 #![allow(dead_code)]
 
@@ -7,7 +10,6 @@ pub fn OP_CHECKSEQUENCEVERIFY() -> Script {
     script! {OP_CSV}
 }
 
-/// OP_4PICK
 /// The 4 items n back in the stack are copied to the top.
 pub fn OP_4PICK() -> Script {
     script! {
@@ -19,7 +21,6 @@ pub fn OP_4PICK() -> Script {
     }
 }
 
-/// OP_BITAND
 /// The top two items are bitwise ANDed
 pub fn OP_BITAND() -> Script {
     // a and b = 1 iff a + b = 2
@@ -28,7 +29,7 @@ pub fn OP_BITAND() -> Script {
     }
 }
 
-/// OP_4BITMUL
+/// Multiplication of two 4-bit numbers.
 ///
 /// Taken from https://github.com/coins/bitcoin-scripts/blob/master/op_mul.md
 pub fn OP_4BITMUL() -> Script {
@@ -92,7 +93,6 @@ pub fn OP_4BITMUL() -> Script {
     }
 }
 
-/// OP_4ROLL
 /// The 4 items n back in the stack are moved to the top.
 pub fn OP_4ROLL() -> Script {
     script! {
@@ -235,7 +235,7 @@ mod test {
     use crate::{pseudo::OP_4BITMUL, treepp::*};
     use bitcoin_script::script;
 
-    use crate::execute_script;
+    use crate::debug::execute_script;
 
     use super::OP_BITAND;
 

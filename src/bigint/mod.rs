@@ -1,3 +1,4 @@
+use composed::NonNativeComposedBigIntImpl;
 use window::NonNativeWindowedBigIntImpl;
 
 use crate::{
@@ -15,9 +16,20 @@ pub mod bits;
 pub mod comparison;
 pub mod window;
 
+pub mod composed;
 pub mod naf;
-pub mod std;
-pub mod u508;
+pub mod stack;
+
+pub mod performance;
+
+/// Type alias for a 254-bit non-native big integer.
+pub type U254 = NonNativeBigIntImpl<254, 30>;
+/// Type alias for a 254-bit non-native big integer with window size of 4.
+pub type U254Windowed = NonNativeWindowedBigIntImpl<U254, 4>;
+/// Type alias for a 64-bit non-native big integer.
+pub type U64 = NonNativeBigIntImpl<64, 16>;
+/// Type alias for a 508-bit non-native big integer.
+pub type U508 = NonNativeComposedBigIntImpl<U254, 2>;
 
 /// Structure representing a non-native big integer with `N_BITS` bits and `LIMB_SIZE` bits per limb
 /// implementing the [`NonNativeBigInt`] trait.
@@ -162,7 +174,3 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeInteger
         Self::handle_OP_DUPZIP(depth)
     }
 }
-
-pub type U254 = NonNativeBigIntImpl<254, 30>;
-pub type U254Windowed = NonNativeWindowedBigIntImpl<U254, 4>;
-pub type U64 = NonNativeBigIntImpl<64, 16>;
