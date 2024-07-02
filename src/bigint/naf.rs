@@ -1,16 +1,17 @@
 use crate::pseudo::{OP_3DROP, OP_BITAND};
+use crate::traits::bitable::Bitable;
 use crate::treepp::*;
 
-use super::NonNativeBigInt;
+use super::NonNativeBigIntImpl;
 
 #[allow(non_snake_case)]
-impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LIMB_SIZE> {
     /// Takes the top stack big integer and outputs
     /// the naf representation in the main stack
     pub fn convert_to_be_naf_bits() -> Script {
         script! {
-            { Self::convert_to_be_bits_toaltstack() }
-            { binary_to_be_naf(Self::N_BITS) }
+            { <Self as Bitable>::OP_TOBEBITS_TOALTSTACK() }
+            { binary_to_be_naf(N_BITS) }
         }
     }
 
@@ -18,12 +19,12 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_S
     /// the naf representation in the alt stack
     pub fn convert_to_be_naf_bits_toaltstack() -> Script {
         script! {
-            { Self::convert_to_be_bits_toaltstack() }
-            { binary_to_be_naf(Self::N_BITS) }
+            { Self::OP_TOBEBITS_TOALTSTACK() }
+            { binary_to_be_naf(N_BITS) }
 
             // Moving everything to the alt stack
             // NOTE: The naf representation is one bit longer than the binary one
-            for _ in 0..Self::N_BITS + 1 {
+            for _ in 0..N_BITS + 1 {
                 OP_TOALTSTACK
             }
         }
@@ -95,7 +96,7 @@ pub fn binary_to_be_naf(num_bits: usize) -> Script {
 
 #[cfg(test)]
 mod test {
-    use crate::bigint::bits::limb_to_be_bits_toaltstack;
+    use crate::bigint::bits::bits::limb_to_be_bits_toaltstack;
     use crate::bigint::naf::binary_to_be_naf;
     use crate::bigint::U254;
     use crate::traits::integer::NonNativeInteger;
@@ -308,7 +309,7 @@ mod test {
 
             // Launching a script
             let script = script! {
-                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
+                { U254::OP_PUSH_U32LESLICE(&test_number.to_u32_digits()) }
                 { U254::convert_to_be_naf_bits() }
                 for coefficient in wnaf_decomposition.iter().rev() {
                     { *coefficient }
@@ -394,7 +395,7 @@ mod test {
 
             // Launching a script
             let script = script! {
-                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
+                { U254::OP_PUSH_U32LESLICE(&test_number.to_u32_digits()) }
                 { U254::convert_to_be_naf_bits_toaltstack() }
                 for coefficient in wnaf_decomposition {
                     OP_FROMALTSTACK

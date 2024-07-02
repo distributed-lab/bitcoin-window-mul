@@ -1,5 +1,6 @@
 use super::*;
 use arithmeticable::Arithmeticable;
+use bitable::Bitable;
 use comparable::Comparable;
 
 /// Trait for non-native integers, which cannot
@@ -10,7 +11,7 @@ use comparable::Comparable;
 /// - Arithmetic operations (addition, multiplication etc.).
 /// - Constants (pushing 0 and 1 to the stack).
 #[allow(non_snake_case)]
-pub trait NonNativeInteger: Comparable + Arithmeticable {
+pub trait NonNativeInteger: Comparable + Arithmeticable + Bitable {
     // --- Push operations ---
 
     /// Pushes 0 to the stack
@@ -20,19 +21,19 @@ pub trait NonNativeInteger: Comparable + Arithmeticable {
     fn OP_1() -> Script;
 
     /// Pushes the given decimal string to the stack
-    fn OP_PUSHDECSTR(dec_str: &str) -> Script;
+    fn OP_PUSH_DECSTR(dec_str: &str) -> Script;
 
     /// Pushes the given hex string to the stack
-    fn OP_PUSHHEXSTR(hex_str: &str) -> Script;
+    fn OP_PUSH_HEXSTR(hex_str: &str) -> Script;
 
     /// Pushes the given [`u32`] array given in little-endian format to the stack
     /// in low-endian format (meaning, the top element in the stack contains
     /// the lowest limb).
-    fn OP_PUSHU32LESLICE(slice: &[u32]) -> Script;
+    fn OP_PUSH_U32LESLICE(slice: &[u32]) -> Script;
 
     /// Pushes the given [`u64`] array given in little-endian format to the stack
     /// in big-endian format.
-    fn OP_PUSHU64LESLICE(slice: &[u64]) -> Script;
+    fn OP_PUSH_U64LESLICE(slice: &[u64]) -> Script;
 
     /// Pushes the top [`NonNativeInteger`] of the stack to the alt stack.
     fn OP_TOALTSTACK() -> Script;
@@ -74,4 +75,11 @@ pub trait NonNativeInteger: Comparable + Arithmeticable {
 
     /// Picks the top two [`NonNativeInteger`]s from the stack and zips them together.
     fn OP_PICKZIP(depth_1: usize, depth_2: usize) -> Script;
+}
+
+/// Trait for non-native integers that can be represented as a sequence of limbs.
+/// Note that the only requirement is to specify the total number of limbs and the size of each limb.
+pub trait NonNativeLimbInteger: NonNativeInteger {
+    const N_BITS: usize;
+    const LIMB_SIZE: usize;
 }

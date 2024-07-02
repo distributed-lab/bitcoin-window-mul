@@ -1,91 +1,17 @@
-use crate::treepp::*;
-
-use super::NonNativeBigInt;
-
-impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
-    /// Takes the top stack big integer and outputs
-    /// the low-endian w-width form in the alt stack
-    #[allow(dead_code)]
-    pub(super) fn convert_to_le_w_width_form_toaltstack<const WIDTH: usize>() -> Script {
-        script! {
-            { Self::convert_to_be_bits_toaltstack() }
-            { binary_to_w_width_form_altstack::<WIDTH>(Self::N_BITS) }
-        }
-    }
-
-    /// Takes the top stack big integer and outputs
-    /// the big-endian w-width form in the alt stack
-    pub(super) fn convert_to_be_w_width_form_toaltstack<const WIDTH: usize>() -> Script {
-        let decomposition_size = (Self::N_BITS + WIDTH - 1) / WIDTH;
-
-        script! {
-            { Self::convert_to_be_bits_toaltstack() }
-            { binary_to_w_width_form::<WIDTH>(Self::N_BITS) }
-
-            // Moving the result to the alt stack in the reverse order
-            for i in (0..decomposition_size).rev() {
-                {i} OP_ROLL
-                OP_TOALTSTACK
-            }
-        }
-    }
-}
-
-/// Converts the limb from the top stack which has `num_bits` bits in size to
-/// 3-width representation.
-pub fn binary_to_w_width_form<const WIDTH: usize>(num_bits: usize) -> Script {
-    // The number of coefficients in the w-width form
-    let decomposition_size = (num_bits + WIDTH - 1) / WIDTH;
-    let head_size = num_bits - (decomposition_size - 1) * WIDTH;
-
-    script! {
-        for i in 0..decomposition_size {
-            if i + 1 == decomposition_size {
-                // Picking the remaining bits in head and calculating 1<<j
-                for j in 0..head_size {
-                    OP_FROMALTSTACK
-                    OP_IF { 1 << j } OP_ELSE { 0 } OP_ENDIF
-                }
-                // Adding the coefficients (we need head_size-1 add ops)
-                for _ in 0..head_size-1 { OP_ADD }
-            } else {
-                // Picking top w bits from the stack and calculating 1<<j
-                for j in 0..WIDTH {
-                    OP_FROMALTSTACK
-                    OP_IF { 1 << j } OP_ELSE { 0 } OP_ENDIF
-                }
-                // Adding the coefficients (we need WIDTH-1 add ops)
-                for _ in 0..WIDTH-1 { OP_ADD }
-            }
-        }
-    }
-}
-
-/// Converts the limb from the top stack which has `num_bits` bits in size to
-/// 3-width representation. It pushes all the coefficients to the alt stack
-pub fn binary_to_w_width_form_altstack<const WIDTH: usize>(num_bits: usize) -> Script {
-    // The number of coefficients in the w-width form
-    let decomposition_size = (num_bits + WIDTH - 1) / WIDTH;
-
-    script! {
-        { binary_to_w_width_form::<WIDTH>(num_bits) }
-
-        // Moving the result to the alt stack
-        for _ in 0..decomposition_size {
-            OP_TOALTSTACK
-        }
-    }
-}
-
 #[cfg(test)]
 mod test {
-    use crate::bigint::bits::limb_to_be_bits_toaltstack;
-    use crate::bigint::window::binary_to_w_width_form_altstack;
+    use crate::bigint::bits::bits::limb_to_be_bits_toaltstack;
+    use crate::bigint::window::precompute::WindowedPrecomputeTable;
+    use crate::bigint::window::{binary_to_windowed_toaltstack, NonNativeWindowedBigIntImpl};
     use crate::bigint::U254;
+    use crate::traits::arithmeticable::Arithmeticable;
+    use crate::traits::comparable::Comparable;
     use crate::traits::integer::NonNativeInteger;
+    use crate::traits::window::Windowable;
     use crate::{print_script_size, treepp::*};
     use ark_ff::{One, Zero};
-    use num_bigint::{BigInt as NumBigInt, BigUint as NumBigUInt, RandomBits, ToBigInt, ToBigUint};
+    use core::ops::{Mul, Rem, Shl};
+    use num_bigint::{BigInt, BigUint, RandomBits, ToBigInt, ToBigUint};
     use num_traits::FromPrimitive;
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha20Rng;
@@ -125,7 +51,7 @@ mod test {
             let script = script! {
                 { limb } // 30-bit number
                 { limb_to_be_bits_toaltstack(LIMB_BIT_SIZE) }
-                { binary_to_w_width_form_altstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
+                { binary_to_windowed_toaltstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
 
                 for coefficient in decomposition {
                     OP_FROMALTSTACK
@@ -176,7 +102,7 @@ mod test {
             let script = script! {
                 { limb } // 30-bit number
                 { limb_to_be_bits_toaltstack(LIMB_BIT_SIZE) }
-                { binary_to_w_width_form_altstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
+                { binary_to_windowed_toaltstack::<WINDOW_WIDTH>(LIMB_BIT_SIZE) }
 
                 for coefficient in decomposition {
                     OP_FROMALTSTACK
@@ -198,14 +124,16 @@ mod test {
         const TESTS_NUM: usize = 30;
         const WINDOW_WIDTH: usize = 3;
 
+        type U254Windowed = NonNativeWindowedBigIntImpl<U254, WINDOW_WIDTH>;
+
         print_script_size(
             "u254_to_3_width_form",
-            U254::convert_to_le_w_width_form_toaltstack::<WINDOW_WIDTH>(),
+            U254Windowed::OP_TOLEWINDOWEDFORM_TOALTSTACK(),
         );
 
         let mut prng = ChaCha20Rng::seed_from_u64(0);
         for _ in 0..TESTS_NUM {
-            let test_number: NumBigUInt = prng.sample(RandomBits::new(254));
+            let test_number: BigUint = prng.sample(RandomBits::new(254));
 
             // Decomposing a number into wnaf representation
             let mut decomposition = {
@@ -213,9 +141,9 @@ mod test {
                 let mut k = test_number.clone();
                 let window_size = (1 << WINDOW_WIDTH).to_biguint().unwrap();
 
-                while k.ge(&NumBigUInt::one()) {
+                while k.ge(&BigUint::one()) {
                     // TODO: I do not know what I am doing with so many clones, so FIXME later please
-                    let c: NumBigUInt = k.clone() % window_size.clone();
+                    let c: BigUint = k.clone() % window_size.clone();
                     decomposition.push(c.clone());
                     k = k - c;
                     k = k / window_size.clone();
@@ -229,10 +157,9 @@ mod test {
                 decomposition
                     .iter()
                     .enumerate()
-                    .fold(NumBigInt::zero(), |acc, (i, c)| {
-                        let power_of_two = NumBigInt::from_u8(2u8)
-                            .unwrap()
-                            .pow((WINDOW_WIDTH * i) as u32);
+                    .fold(BigInt::zero(), |acc, (i, c)| {
+                        let power_of_two =
+                            BigInt::from_u8(2u8).unwrap().pow((WINDOW_WIDTH * i) as u32);
                         acc + c.to_bigint().unwrap() * power_of_two
                     });
             assert_eq!(
@@ -264,8 +191,8 @@ mod test {
 
             // Launching a script in le order
             let script = script! {
-                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
-                { U254::convert_to_le_w_width_form_toaltstack::<WINDOW_WIDTH>() }
+                { U254::OP_PUSH_U32LESLICE(&test_number.to_u32_digits()) }
+                { U254Windowed::OP_TOLEWINDOWEDFORM_TOALTSTACK() }
                 for coefficient in decomposition.iter() {
                     OP_FROMALTSTACK
                     { *coefficient }
@@ -280,8 +207,8 @@ mod test {
 
             // Launching a script in be order
             let script = script! {
-                { U254::OP_PUSHU32LESLICE(&test_number.to_u32_digits()) }
-                { U254::convert_to_be_w_width_form_toaltstack::<WINDOW_WIDTH>() }
+                { U254::OP_PUSH_U32LESLICE(&test_number.to_u32_digits()) }
+                { U254Windowed::OP_TOBEWINDOWEDFORM_TOALTSTACK() }
                 for coefficient in decomposition.iter().rev() {
                     OP_FROMALTSTACK
                     { *coefficient }
@@ -293,6 +220,135 @@ mod test {
 
             let exec_result = execute_script(script);
             assert!(exec_result.success, "be w-width form failed");
+        }
+    }
+
+    #[test]
+    fn test_mul_width_3_precompute() {
+        print_script_size(
+            "254-bit 3-width precompute",
+            WindowedPrecomputeTable::<U254, 3>::initialize(),
+        );
+
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let a: BigUint = prng.sample(RandomBits::new(254));
+
+        let expected_precomputed_values = {
+            let mut precomputed_values: Vec<BigUint> = vec![];
+            for i in 0..1 << 3 {
+                precomputed_values.push(i.to_biguint().unwrap() * a.clone());
+            }
+
+            precomputed_values
+        };
+
+        assert_eq!(
+            expected_precomputed_values.len(),
+            1 << 3,
+            "precomputed values are incorrect"
+        );
+        assert_eq!(
+            *expected_precomputed_values.first().unwrap(),
+            0.to_biguint().unwrap(),
+            "precomputed values are incorrect"
+        );
+        assert_eq!(
+            *expected_precomputed_values.last().unwrap(),
+            a.clone() * 7u32,
+            "precomputed values are incorrect"
+        );
+
+        let script = script! {
+            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { WindowedPrecomputeTable::<U254, 3>::initialize() }
+            for expected_value in expected_precomputed_values.iter().rev() {
+                { U254::OP_PUSH_U32LESLICE(&expected_value.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
+            }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success, "3-width precompute test failed");
+    }
+
+    #[test]
+    fn test_lazy_mul_width_w_precompute() {
+        const WIDTH: usize = 4;
+        print_script_size(
+            format!("254-bit {:?}-width lazy precompute", WIDTH).as_str(),
+            WindowedPrecomputeTable::<U254, 3>::lazy_initialize(),
+        );
+
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        let a: BigUint = prng.sample(RandomBits::new(254));
+
+        let expected_precomputed_values = {
+            let mut precomputed_values: Vec<BigUint> = vec![];
+            for i in 0..1 << WIDTH {
+                precomputed_values.push(i.to_biguint().unwrap() * a.clone());
+            }
+
+            precomputed_values
+        };
+
+        assert_eq!(
+            expected_precomputed_values.len(),
+            1 << WIDTH,
+            "precomputed values are incorrect"
+        );
+        assert_eq!(
+            *expected_precomputed_values.first().unwrap(),
+            0.to_biguint().unwrap(),
+            "precomputed values are incorrect"
+        );
+        assert_eq!(
+            *expected_precomputed_values.last().unwrap(),
+            a.clone() * ((1 << WIDTH) - 1).to_biguint().unwrap(),
+            "precomputed values are incorrect"
+        );
+
+        let script = script! {
+            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { WindowedPrecomputeTable::<U254, WIDTH>::lazy_initialize() }
+            for expected_value in expected_precomputed_values.iter().rev() {
+                { U254::OP_PUSH_U32LESLICE(&expected_value.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
+            }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success, "lazy precompute test failed");
+    }
+
+    /// Tests the multiplication of two 254-bit numbers using w width approach.
+    #[test]
+    fn test_mul_w_width_254bit() {
+        const TESTS_NUM: usize = 10;
+        const WIDTH: usize = 4;
+
+        type U254Windowed = NonNativeWindowedBigIntImpl<U254, WIDTH>;
+
+        print_script_size("254-bit w-width mul", U254Windowed::OP_MUL());
+
+        let mut prng = ChaCha20Rng::seed_from_u64(0);
+        for _ in 0..TESTS_NUM {
+            let a: BigUint = prng.sample(RandomBits::new(254));
+            let b: BigUint = prng.sample(RandomBits::new(254));
+            let c: BigUint = a.clone().mul(b.clone()).rem(BigUint::one().shl(254));
+
+            let script = script! {
+                { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+                { U254::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+                { U254Windowed::OP_MUL() }
+                { U254::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
+                { U254::OP_EQUALVERIFY(1, 0) }
+                OP_TRUE
+            };
+
+            let exec_result = execute_script(script);
+            assert!(exec_result.success);
         }
     }
 }

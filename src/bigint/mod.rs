@@ -1,24 +1,36 @@
+use window::NonNativeWindowedBigIntImpl;
+
 use crate::{
-    traits::{arithmeticable::Arithmeticable, comparable::Comparable, integer::NonNativeInteger},
+    traits::{
+        arithmeticable::Arithmeticable,
+        bitable::Bitable,
+        comparable::Comparable,
+        integer::{NonNativeInteger, NonNativeLimbInteger},
+    },
     treepp::*,
 };
 
-pub mod add;
+pub mod arithmetics;
 pub mod bits;
-pub mod cmp;
-pub mod mul;
+pub mod comparison;
+pub mod window;
+
 pub mod naf;
 pub mod std;
 pub mod u508;
-pub mod window;
 
-/// Structure representing a big integer with `N_BITS` bits and `LIMB_SIZE` bits per limb
+/// Structure representing a non-native big integer with `N_BITS` bits and `LIMB_SIZE` bits per limb
 /// implementing the [`NonNativeBigInt`] trait.
-pub struct NonNativeBigInt<const N_BITS: usize, const LIMB_SIZE: usize> {}
+pub struct NonNativeBigIntImpl<const N_BITS: usize, const LIMB_SIZE: usize> {}
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
-    /// Number of bits of the big integer
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeLimbInteger
+    for NonNativeBigIntImpl<N_BITS, LIMB_SIZE>
+{
+    const LIMB_SIZE: usize = LIMB_SIZE;
     const N_BITS: usize = N_BITS;
+}
+
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LIMB_SIZE> {
     /// Number of bits per limb
     const N_LIMBS: usize = (N_BITS + LIMB_SIZE - 1) / LIMB_SIZE;
     /// Base of the big integer is u32
@@ -30,7 +42,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_S
 }
 
 impl<const N_BITS: usize, const LIMB_SIZE: usize> Comparable
-    for NonNativeBigInt<N_BITS, LIMB_SIZE>
+    for NonNativeBigIntImpl<N_BITS, LIMB_SIZE>
 {
     fn OP_EQUAL(depth_1: usize, depth_2: usize) -> Script {
         Self::handle_OP_EQUAL(depth_1, depth_2)
@@ -60,28 +72,46 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> Comparable
 
 #[allow(non_snake_case)]
 impl<const N_BITS: usize, const LIMB_SIZE: usize> Arithmeticable
-    for NonNativeBigInt<N_BITS, LIMB_SIZE>
+    for NonNativeBigIntImpl<N_BITS, LIMB_SIZE>
 {
     fn OP_ADD(depth_1: usize, depth_2: usize) -> Script {
         Self::handle_OP_ADD(depth_1, depth_2)
     }
     fn OP_ADD1() -> Script {
-        Self::handle_OPADD1()
+        Self::handle_OP_ADD1()
     }
     fn OP_SUB(depth_1: usize, depth_2: usize) -> Script {
-        Self::handle_OPSUB(depth_1, depth_2)
+        Self::handle_OP_SUB(depth_1, depth_2)
     }
     fn OP_2MUL(depth: usize) -> Script {
-        Self::handle_OP2MUL(depth)
+        Self::handle_OP_2MUL(depth)
     }
     fn OP_MUL() -> Script {
-        Self::mul_width_w::<3>()
+        Self::handle_OP_MUL()
+    }
+}
+
+#[allow(non_snake_case)]
+impl<const N_BITS: usize, const LIMB_SIZE: usize> Bitable
+    for NonNativeBigIntImpl<N_BITS, LIMB_SIZE>
+{
+    fn OP_TOBEBITS() -> Script {
+        Self::handle_OP_TOBEBITS()
+    }
+    fn OP_TOLEBITS() -> Script {
+        Self::handle_OP_TOLEBITS()
+    }
+    fn OP_TOBEBITS_TOALTSTACK() -> Script {
+        Self::handle_OP_TOBEBITS_TOALTSTACK()
+    }
+    fn OP_TOLEBITS_TOALTSTACK() -> Script {
+        Self::handle_OP_TOLEBITS_TOALTSTACK()
     }
 }
 
 #[allow(non_snake_case)]
 impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeInteger
-    for NonNativeBigInt<N_BITS, LIMB_SIZE>
+    for NonNativeBigIntImpl<N_BITS, LIMB_SIZE>
 {
     fn OP_0() -> Script {
         Self::handle_OP_0()
@@ -89,10 +119,10 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeInteger
     fn OP_1() -> Script {
         Self::handle_OP_1()
     }
-    fn OP_PUSHDECSTR(dec_str: &str) -> Script {
+    fn OP_PUSH_DECSTR(dec_str: &str) -> Script {
         Self::handle_OP_PUSHDECSTR(dec_str)
     }
-    fn OP_PUSHHEXSTR(hex_str: &str) -> Script {
+    fn OP_PUSH_HEXSTR(hex_str: &str) -> Script {
         Self::handle_OP_PUSHHEX(hex_str)
     }
     fn OP_DROP() -> Script {
@@ -113,10 +143,10 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeInteger
     fn OP_PICKZIP(depth_1: usize, depth_2: usize) -> Script {
         Self::handle_OP_PICKZIP(depth_1, depth_2)
     }
-    fn OP_PUSHU32LESLICE(slice: &[u32]) -> Script {
+    fn OP_PUSH_U32LESLICE(slice: &[u32]) -> Script {
         Self::handle_OP_PUSHU32LESLICE(slice)
     }
-    fn OP_PUSHU64LESLICE(slice: &[u64]) -> Script {
+    fn OP_PUSH_U64LESLICE(slice: &[u64]) -> Script {
         Self::handle_OP_PUSHU64LESLICE(slice)
     }
     fn OP_ROLL(depth: usize) -> Script {
@@ -133,5 +163,6 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeInteger
     }
 }
 
-pub type U254 = NonNativeBigInt<254, 30>;
-pub type U64 = NonNativeBigInt<64, 16>;
+pub type U254 = NonNativeBigIntImpl<254, 30>;
+pub type U254Windowed = NonNativeWindowedBigIntImpl<U254, 4>;
+pub type U64 = NonNativeBigIntImpl<64, 16>;
