@@ -2,14 +2,15 @@ use num_bigint::BigUint;
 use num_traits::Num;
 use std::str::FromStr;
 
-use crate::bigint::{BigInt, U254};
+use crate::bigint::U254;
 use crate::pseudo::{OP_4BITMUL, OP_4MUL, OP_CLONE};
+use crate::traits::integer::NonNativeInteger;
 use crate::treepp::*;
 
-use super::BigIntImpl;
+use super::NonNativeBigInt;
 
 #[allow(non_snake_case)]
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     /// Pushes 0 to the stack
     pub(super) fn handle_OP_0() -> Script {
         OP_CLONE(0, Self::N_LIMBS)
@@ -205,7 +206,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> 
     }
 }
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     /// Since internal representation of limbs is not the power of two, we transform the
     /// power-two representation to the limb representation (e.g., for 254-bit integer, we
     /// have 9 limbs of 30 bits each). Returns an array of limbs in low-endian format.
@@ -230,14 +231,14 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> 
             chunk_vec.resize(LIMB_SIZE, false);
 
             // Converting the chunk to a limb of size LIMB_SIZE
-            let mut elem = 0u32;
-            for i in 0..LIMB_SIZE {
-                if chunk_vec[i] {
-                    elem += 1 << i;
+            let mut element = 0u32;
+            for (i, chunk_element) in chunk_vec.iter().enumerate().take(LIMB_SIZE) {
+                if *chunk_element {
+                    element += 1 << i;
                 }
             }
 
-            limbs.push(elem);
+            limbs.push(element);
         }
 
         // Asserting that we have not exceeded the number of limbs
@@ -312,7 +313,8 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> 
 
 #[cfg(test)]
 mod test {
-    use crate::bigint::{BigInt, BigIntImpl, U254};
+    use crate::bigint::{NonNativeBigInt, U254};
+    use crate::traits::integer::NonNativeInteger;
     use crate::treepp::{execute_script, pushable};
     use bitcoin_script::script;
     use rand::{Rng, SeedableRng};
@@ -344,7 +346,7 @@ mod test {
                 for i in 0..N_U30_LIMBS * 2 {
                     { v[i as usize] }
                 }
-                { BigIntImpl::<N_BITS, 30>::OP_ZIP(1, 0) }
+                { NonNativeBigInt::<N_BITS, 30>::OP_ZIP(1, 0) }
                 for i in 0..N_U30_LIMBS * 2 {
                     { expected[(N_U30_LIMBS * 2 - 1 - i) as usize] }
                     OP_EQUALVERIFY
@@ -374,7 +376,7 @@ mod test {
                 for i in 0..N_U30_LIMBS * 2 {
                     { v[i as usize] }
                 }
-                { BigIntImpl::<N_BITS, 30>::OP_ZIP(0, 1) }
+                { NonNativeBigInt::<N_BITS, 30>::OP_ZIP(0, 1) }
                 for i in 0..N_U30_LIMBS * 2 {
                     { expected[(N_U30_LIMBS * 2 - 1 - i) as usize] }
                     OP_EQUALVERIFY

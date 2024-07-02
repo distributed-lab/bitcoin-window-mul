@@ -1,13 +1,13 @@
-use crate::bigint::{BigInt, BigIntImpl};
+use crate::bigint::NonNativeBigInt;
 use crate::treepp::*;
 
 #[allow(non_snake_case)]
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     /// Adds two [`BigInt`]s from the stack, resulting in a new [`BigInt`] at the top of the stack.
     pub(super) fn handle_OP_ADD(depth_1: usize, depth_2: usize) -> Script {
         script! {
             // Zip the two BigInts from the stack
-            { Self::OP_ZIP(depth_1, depth_2) }
+            { Self::handle_OP_ZIP(depth_1, depth_2) }
 
             // Push the base to the stack
             { Self::BASE }
@@ -45,7 +45,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> 
     /// in a new [`BigInt`] at the top of the stack.
     pub(super) fn handle_OP2MUL(depth: usize) -> Script {
         script! {
-            { Self::OP_DUPZIP(depth) }
+            { Self::handle_OP_DUPZIP(depth) }
 
             { Self::BASE }
 
@@ -76,7 +76,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> 
     pub(super) fn handle_OPSUB(depth_1: usize, depth_2: usize) -> Script {
         script! {
             // Zip the two BigInts from the stack
-            { Self::OP_ZIP(depth_1, depth_2) }
+            { Self::handle_OP_ZIP(depth_1, depth_2) }
 
             // Push the base to the stack
             { Self::BASE }
@@ -205,7 +205,9 @@ pub fn limb_sub_nocarry(head_offset: u32) -> Script {
 #[cfg(test)]
 mod test {
     use crate::bigint::add::{limb_add_carry, limb_sub_carry};
-    use crate::bigint::{BigInt, Comparable, U254, U64};
+    use crate::bigint::{Comparable, U254, U64};
+    use crate::traits::arithmeticable::Arithmeticable;
+    use crate::traits::integer::NonNativeInteger;
     use crate::{print_script_size, treepp::*};
     use core::ops::{Add, Rem, Shl};
     use num_bigint::{BigUint, RandomBits, ToBigUint};

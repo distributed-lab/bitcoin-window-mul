@@ -1,9 +1,11 @@
-use super::BigIntImpl;
 use crate::treepp::*;
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+use super::NonNativeBigInt;
+
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     /// Takes the top stack big integer and outputs
     /// the low-endian w-width form in the alt stack
+    #[allow(dead_code)]
     pub(super) fn convert_to_le_w_width_form_toaltstack<const WIDTH: usize>() -> Script {
         script! {
             { Self::convert_to_be_bits_toaltstack() }
@@ -79,7 +81,8 @@ pub fn binary_to_w_width_form_altstack<const WIDTH: usize>(num_bits: usize) -> S
 mod test {
     use crate::bigint::bits::limb_to_be_bits_toaltstack;
     use crate::bigint::window::binary_to_w_width_form_altstack;
-    use crate::bigint::{BigInt, U254};
+    use crate::bigint::U254;
+    use crate::traits::integer::NonNativeInteger;
     use crate::{print_script_size, treepp::*};
     use ark_ff::{One, Zero};
     use num_bigint::{BigInt as NumBigInt, BigUint as NumBigUInt, RandomBits, ToBigInt, ToBigUint};

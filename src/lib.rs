@@ -41,6 +41,10 @@ impl FmtStack {
         self.0.len()
     }
 
+    pub fn is_empty(&self) -> bool {
+        self.0.is_empty()
+    }
+
     pub fn get(&self, index: usize) -> Vec<u8> {
         self.0.get(index)
     }
@@ -76,7 +80,7 @@ impl fmt::Display for ExecuteInfo {
         if !self.remaining_script.is_empty() {
             writeln!(f, "Remaining Script: {}", self.remaining_script)?;
         }
-        if self.final_stack.len() > 0 {
+        if !self.final_stack.is_empty() {
             match f.width() {
                 None => writeln!(f, "Final Stack: {:4}", self.final_stack)?,
                 Some(width) => {
@@ -139,9 +143,11 @@ pub fn print_script_size(name: &str, script: bitcoin::ScriptBuf) {
 // NOTE: Only for test purposes.
 pub fn execute_script_no_stack_limit(script: bitcoin::ScriptBuf) -> ExecuteInfo {
     // Get the default options for the script exec.
-    let mut opts = Options::default();
-    // Do not enforce the stack limit.
-    opts.enforce_stack_limit = false;
+    // NOTE: Do not enforce the stack limit.
+    let opts = Options {
+        enforce_stack_limit: false,
+        ..Default::default()
+    };
 
     let mut exec = Exec::new(
         ExecCtx::Tapscript,

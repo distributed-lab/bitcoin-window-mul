@@ -2,7 +2,7 @@ use super::*;
 use crate::treepp::{pushable, script, Script};
 
 #[allow(non_snake_case)]
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     /// Multiplies the top two big integers on the stack
     /// represented as little-endian 32-bit limbs
     /// using w-width decomposition.
@@ -195,13 +195,16 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> 
 
 #[cfg(test)]
 mod test {
-    use crate::bigint::{BigInt, Comparable, U254, U64};
+    use crate::bigint::{Comparable, U254, U64};
+    use crate::traits::integer::NonNativeInteger;
     use crate::{print_script_size, treepp::*};
     use core::ops::{Mul, Rem, Shl};
     use num_bigint::{BigUint, RandomBits, ToBigUint};
     use num_traits::One;
     use rand::{Rng, SeedableRng};
     use rand_chacha::ChaCha20Rng;
+
+    use super::Arithmeticable;
 
     /// Tests the multiplication of two 254-bit numbers and two 64-bit numbers.
     #[test]

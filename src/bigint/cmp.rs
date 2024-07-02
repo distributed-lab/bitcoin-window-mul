@@ -1,8 +1,9 @@
-use crate::bigint::BigIntImpl;
 use crate::treepp::*;
 
+use super::NonNativeBigInt;
+
 #[allow(non_snake_case)]
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     /// Checks whether the number at specified depth
     /// is zero and removes it from the stack
     pub(super) fn handle_OP_ISZERO(depth: usize) -> Script {
@@ -119,13 +120,10 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> 
         }
     }
 }
-
-#[allow(non_snake_case)]
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {}
-
 #[cfg(test)]
 mod test {
-    use crate::bigint::{BigInt, Comparable, U254, U64};
+    use crate::bigint::{Comparable, U254, U64};
+    use crate::traits::integer::NonNativeInteger;
     use crate::treepp::*;
     use core::cmp::Ordering;
     use num_bigint::{BigUint, RandomBits};

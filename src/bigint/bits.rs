@@ -1,8 +1,9 @@
-use crate::bigint::BigIntImpl;
 use crate::treepp::*;
 use std::cmp::min;
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+use super::NonNativeBigInt;
+
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     pub fn convert_to_be_bits() -> Script {
         script! {
             for i in 0..Self::N_LIMBS - 1 {
@@ -207,7 +208,8 @@ pub fn limb_to_be_bits_toaltstack(num_bits: usize) -> Script {
 #[cfg(test)]
 mod test {
     use super::{limb_to_be_bits, limb_to_le_bits};
-    use crate::bigint::{BigInt, U254, U64};
+    use crate::bigint::{U254, U64};
+    use crate::traits::integer::NonNativeInteger;
     use crate::treepp::{execute_script, pushable};
     use bitcoin_script::script;
     use core::ops::ShrAssign;

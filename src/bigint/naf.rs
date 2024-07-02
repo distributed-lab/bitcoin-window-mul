@@ -1,9 +1,10 @@
-use crate::bigint::BigIntImpl;
 use crate::pseudo::{OP_3DROP, OP_BITAND};
 use crate::treepp::*;
 
+use super::NonNativeBigInt;
+
 #[allow(non_snake_case)]
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigIntImpl<N_BITS, LIMB_SIZE> {
+impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigInt<N_BITS, LIMB_SIZE> {
     /// Takes the top stack big integer and outputs
     /// the naf representation in the main stack
     pub fn convert_to_be_naf_bits() -> Script {
@@ -96,7 +97,8 @@ pub fn binary_to_be_naf(num_bits: usize) -> Script {
 mod test {
     use crate::bigint::bits::limb_to_be_bits_toaltstack;
     use crate::bigint::naf::binary_to_be_naf;
-    use crate::bigint::{BigInt, U254};
+    use crate::bigint::U254;
+    use crate::traits::integer::NonNativeInteger;
     use crate::{print_script_size, treepp::*};
     use ark_ff::{One, Zero};
     use num_bigint::{BigInt as NumBigInt, BigUint, RandomBits, ToBigInt};
