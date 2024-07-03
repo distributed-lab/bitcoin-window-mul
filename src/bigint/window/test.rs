@@ -2,13 +2,11 @@ use crate::bigint::bits::implementation::limb_to_be_bits_toaltstack;
 use crate::bigint::window::precompute::WindowedPrecomputeTable;
 use crate::bigint::window::{binary_to_windowed_form_toaltstack, NonNativeWindowedBigIntImpl};
 use crate::bigint::U254;
-use crate::traits::arithmeticable::Arithmeticable;
 use crate::traits::comparable::Comparable;
 use crate::traits::integer::NonNativeInteger;
 use crate::traits::window::Windowable;
 use crate::{debug::print_script_size, treepp::*};
 use ark_ff::{One, Zero};
-use core::ops::{Mul, Rem, Shl};
 use num_bigint::{BigInt, BigUint, RandomBits, ToBigInt, ToBigUint};
 use num_traits::FromPrimitive;
 use rand::{Rng, SeedableRng};
@@ -317,34 +315,4 @@ fn test_lazy_mul_width_w_precompute() {
 
     let exec_result = execute_script(script);
     assert!(exec_result.success, "lazy precompute test failed");
-}
-
-/// Tests the multiplication of two 254-bit numbers using w width approach.
-#[test]
-fn test_mul_w_width_254bit() {
-    const TESTS_NUM: usize = 10;
-    const WIDTH: usize = 4;
-
-    type U254Windowed = NonNativeWindowedBigIntImpl<U254, WIDTH>;
-
-    print_script_size("254-bit w-width mul", U254Windowed::OP_MUL());
-
-    let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUM {
-        let a: BigUint = prng.sample(RandomBits::new(254));
-        let b: BigUint = prng.sample(RandomBits::new(254));
-        let c: BigUint = a.clone().mul(b.clone()).rem(BigUint::one().shl(254));
-
-        let script = script! {
-            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
-            { U254::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
-            { U254Windowed::OP_MUL() }
-            { U254::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
-            { U254::OP_EQUALVERIFY(1, 0) }
-            OP_TRUE
-        };
-
-        let exec_result = execute_script(script);
-        assert!(exec_result.success);
-    }
 }

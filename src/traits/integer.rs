@@ -41,6 +41,11 @@ pub trait NonNativeInteger: Comparable + Arithmeticable + Bitable {
     /// Pushes the top [`NonNativeInteger`] of the alt stack to the main stack.
     fn OP_FROMALTSTACK() -> Script;
 
+    /// Extends the given [`NonNativeInteger`] to the specified type.
+    fn OP_EXTEND<T>() -> Script
+    where
+        T: NonNativeLimbInteger;
+
     // --- Stack operations ---
 
     /// Zips two [`NonNativeInteger`]s at specified depths.
@@ -79,7 +84,14 @@ pub trait NonNativeInteger: Comparable + Arithmeticable + Bitable {
 
 /// Trait for non-native integers that can be represented as a sequence of limbs.
 /// Note that the only requirement is to specify the total number of limbs and the size of each limb.
+#[allow(non_snake_case)]
 pub trait NonNativeLimbInteger: NonNativeInteger {
     const N_BITS: usize;
     const LIMB_SIZE: usize;
+
+    /// Multiplies the top two big integers on the stack to get a big integer that is of type Q
+    /// larger than the original type (for example, multiplying two 32-bit integers to get a 64-bit integer).
+    fn OP_WIDENINGMUL<Q>() -> Script
+    where
+        Q: NonNativeLimbInteger;
 }

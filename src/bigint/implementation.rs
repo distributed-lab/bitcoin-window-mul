@@ -17,6 +17,12 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeLimbInteger
 {
     const LIMB_SIZE: usize = LIMB_SIZE;
     const N_BITS: usize = N_BITS;
+
+    fn OP_WIDENINGMUL<Q>() -> Script
+        where
+            Q: NonNativeLimbInteger {
+        Self::handle_OP_WIDENINGMUL::<Q>()
+    }
 }
 
 impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LIMB_SIZE> {
@@ -149,5 +155,11 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeInteger
     }
     fn OP_DUPZIP(depth: usize) -> Script {
         Self::handle_OP_DUPZIP(depth)
+    }
+    fn OP_EXTEND<T>() -> Script
+    where
+        T: NonNativeLimbInteger,
+    {
+        Self::handle_OP_EXTEND::<T>()
     }
 }

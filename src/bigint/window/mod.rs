@@ -192,6 +192,12 @@ where
     fn OP_ZIP(depth_1: usize, depth_2: usize) -> Script {
         T::OP_ZIP(depth_1, depth_2)
     }
+    fn OP_EXTEND<Q>() -> Script
+    where
+        Q: NonNativeLimbInteger,
+    {
+        T::OP_EXTEND::<Q>()
+    }
 }
 
 #[allow(non_snake_case)]
@@ -201,6 +207,12 @@ where
 {
     const N_BITS: usize = T::N_BITS;
     const LIMB_SIZE: usize = T::LIMB_SIZE;
+
+    fn OP_WIDENINGMUL<Q>() -> Script
+        where
+            Q: NonNativeLimbInteger {
+        Self::handle_OP_WIDENINGMUL::<Q>()
+    }
 }
 
 /// Converts the limb from the top stack which has `num_bits` bits in size to

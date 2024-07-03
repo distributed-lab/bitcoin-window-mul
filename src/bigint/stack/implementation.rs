@@ -2,9 +2,9 @@ use num_bigint::BigUint;
 use num_traits::Num;
 use std::str::FromStr;
 
-use crate::bigint::{NonNativeBigIntImpl, U254};
+use crate::bigint::{NonNativeBigIntImpl, U254, U508};
 use crate::pseudo::{OP_4BITMUL, OP_4MUL, OP_CLONE};
-use crate::traits::integer::NonNativeInteger;
+use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
 use crate::treepp::*;
 
 #[allow(non_snake_case)]
@@ -202,6 +202,29 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
             }
         }
     }
+
+    /// Extends the big integer to the specified type.
+    pub(in super::super) fn handle_OP_EXTEND<T>() -> Script
+    where
+        T: NonNativeLimbInteger,
+    {
+        assert!(
+            T::N_BITS > Self::N_BITS,
+            "The integer to be extended must have more bits than the current integer"
+        );
+
+        let n_limbs_self = (Self::N_BITS + Self::LIMB_SIZE - 1) / Self::LIMB_SIZE;
+        let n_limbs_extension = (T::N_BITS + T::LIMB_SIZE - 1) / T::LIMB_SIZE;
+        let n_limbs_add = n_limbs_extension - n_limbs_self;
+
+        //let bits_to_add = T::N_LI - Self::N_BITS;
+        script! {
+            { OP_CLONE(0, n_limbs_add) } // Pushing zeros to the stack
+            for _ in 0..n_limbs_self {
+                { n_limbs_extension - 1 } OP_ROLL
+            }
+        }
+    }
 }
 
 impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LIMB_SIZE> {
@@ -253,18 +276,24 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
     /// `Self::N_LIMBS * (depth+1)`, this function normalizes the depth
     /// to the required value.
     fn normalize_stack_depth() -> Script {
-        if Self::N_LIMBS == U254::N_LIMBS {
-            return script! {
+        match Self::N_LIMBS {
+            U254::N_LIMBS => script! {
                 1 OP_ADD // Adding 1 to the depth
+                // Then, we need to multiply by 9
                 OP_DUP OP_4MUL {crate::pseudo::OP_2MUL()} // Multiplying 1+depth by 8
                 OP_ADD // Adding 1+depth to 8*(1+depth) to get 9*(1+depth)
-            };
-        }
-
-        script! {
-            1 OP_ADD
-            { Self::N_LIMBS }
-            OP_4BITMUL // Multiplying 1+depth by the number of limbs
+            },
+            U508::N_LIMBS => script! {
+                1 OP_ADD // Adding 1 to the depth
+                // Then, we need to multiply by 17:
+                OP_DUP OP_4MUL OP_4MUL // Multiplying 1+depth by 8
+                OP_ADD // Adding 1+depth to 8*(1+depth) to get 9*(1+depth)
+            },
+            _ => script! {
+                1 OP_ADD
+                { Self::N_LIMBS }
+                OP_4BITMUL // Multiplying 1+depth by the number of limbs
+            }
         }
     }
 

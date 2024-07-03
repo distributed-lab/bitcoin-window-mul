@@ -1,5 +1,4 @@
-pub mod int_simple;
-pub mod int_extended;
+pub mod implementation;
 
 #[cfg(test)]
 pub mod test;
