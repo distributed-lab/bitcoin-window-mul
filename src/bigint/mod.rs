@@ -1,27 +1,21 @@
-use crate::pseudo::push_to_stack;
-use crate::treepp::*;
+use implementation::NonNativeBigIntImpl;
+use window::NonNativeWindowedBigIntImpl;
 
-pub mod add;
+pub mod arithmetics;
 pub mod bits;
-pub mod cmp;
-pub mod mul;
+pub mod comparison;
 pub mod naf;
-pub mod std;
+pub mod stack;
 pub mod window;
 
-pub struct BigInt<const N_BITS: usize, const LIMB_SIZE: usize> {}
+pub mod implementation;
+pub mod performance;
 
-impl<const N_BITS: usize, const LIMB_SIZE: usize> BigInt<N_BITS, LIMB_SIZE> {
-    pub const N_BITS: usize = N_BITS;
-    pub const N_LIMBS: usize = (N_BITS + LIMB_SIZE - 1) / LIMB_SIZE;
-    pub const BASE: u32 = 1u32 << LIMB_SIZE;
-    pub const HEAD: usize = N_BITS - (Self::N_LIMBS - 1) * LIMB_SIZE;
-    pub const HEAD_OFFSET: u32 = 1u32 << Self::HEAD;
-
-    pub fn zero() -> Script {
-        push_to_stack(0, Self::N_LIMBS as usize)
-    }
-}
-
-pub type U254 = BigInt<254, 30>;
-pub type U64 = BigInt<64, 16>;
+/// Type alias for a 254-bit non-native big integer.
+pub type U254 = NonNativeBigIntImpl<254, 30>;
+/// Type alias for a 254-bit non-native big integer with window size of 4.
+pub type U254Windowed = NonNativeWindowedBigIntImpl<U254, 4>;
+/// Type alias for a 64-bit non-native big integer.
+pub type U64 = NonNativeBigIntImpl<64, 16>;
+/// Type alias for a 508-bit non-native big integer.
+pub type U508 = NonNativeBigIntImpl<508, 30>;
