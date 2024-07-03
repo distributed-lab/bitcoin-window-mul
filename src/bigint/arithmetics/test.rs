@@ -1,6 +1,7 @@
 use crate::bigint::arithmetics::add::{limb_add_carry, limb_sub_carry};
-use crate::bigint::{Comparable, U254, U64};
+use crate::bigint::{U254, U64};
 use crate::traits::arithmeticable::Arithmeticable;
+use crate::traits::comparable::Comparable;
 use crate::traits::integer::NonNativeInteger;
 use crate::{debug::print_script_size, treepp::*};
 use core::ops::{Add, Mul, Rem, Shl};

@@ -1,4 +1,5 @@
-use crate::bigint::{Comparable, U254, U64};
+use crate::bigint::{U254, U64};
+use crate::traits::comparable::Comparable;
 use crate::traits::integer::NonNativeInteger;
 use crate::treepp::*;
 use core::cmp::Ordering;
