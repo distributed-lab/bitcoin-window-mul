@@ -226,7 +226,11 @@ fn test_simple_copy_depth_1_from_stack_508_bits() {
     const TESTS_NUMBER: usize = 50;
     const N_U30_LIMBS: usize = 17;
 
-    assert_eq!(U508::N_LIMBS, N_U30_LIMBS, "The number of limbs for u508 should be equal to 17");
+    assert_eq!(
+        U508::N_LIMBS,
+        N_U30_LIMBS,
+        "The number of limbs for u508 should be equal to 17"
+    );
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
 

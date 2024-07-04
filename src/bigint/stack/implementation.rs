@@ -293,7 +293,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
                 1 OP_ADD
                 { Self::N_LIMBS }
                 OP_4BITMUL // Multiplying 1+depth by the number of limbs
-            }
+            },
         }
     }
 
