@@ -5,7 +5,6 @@ use crate::script_loader::AsmScriptLoader;
 use crate::traits::comparable::Comparable;
 use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
 use crate::{debug::print_script_size, treepp::*};
-use bitcoin::opcodes::all::OP_EQUALVERIFY;
 use num_bigint::{BigUint, RandomBits};
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
