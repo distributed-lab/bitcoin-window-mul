@@ -44,28 +44,121 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
     /// Doubles the [`BigInt`] at specified `depth`, resulting
     /// in a new [`BigInt`] at the top of the stack.
     pub(in super::super) fn handle_OP_2MUL(depth: usize) -> Script {
+        assert_eq!(depth, 0, "only depth=0 is supported");
+        
         script! {
-            { Self::handle_OP_DUPZIP(depth) }
-
             { Self::BASE }
 
-            // A0 + B0
+            // Double the limb, take the result to the alt stack
+            limb_double_carry OP_TOALTSTACK
+
+            for _ in 0..Self::N_LIMBS - 2 {
+                // Since we have {limb} {base} {carry} in the stack, we need to add carry
+                // to the next limb and double it.
+                OP_ROT // {base} {carry} {limb}
+                { crate::pseudo::OP_2MUL() } // {base} {carry} {2*limb}
+                OP_ADD // {base} {2*limb + carry}
+                OP_2DUP // {base} {2*limb + carry} {base} {2*limb + carry}
+                OP_LESSTHANOREQUAL // {base} {2*limb + carry} {base<=2*limb + carry}
+                OP_TUCK // {base} {base<=2*limb+carry} {2*limb+carry} {base<=2*limb+carry}
+                OP_IF
+                    2 OP_PICK OP_SUB
+                OP_ENDIF
+
+                OP_TOALTSTACK
+            }
+
+            // When we got {limb} {base} {carry} on the stack, we drop the base
+            OP_NIP // {limb} {carry}
+            OP_SWAP // {carry} {limb}
+            { crate::pseudo::OP_2MUL() } // {carry} {2*limb}
+            OP_ADD // {carry + 2*limb}
+            { Self::HEAD_OFFSET } OP_2DUP
+            OP_GREATERTHANOREQUAL
+            OP_IF
+                OP_SUB
+            OP_ELSE
+                OP_DROP
+            OP_ENDIF
+            
+            // Take all limbs from the sum to the main stack
+            for _ in 0..Self::N_LIMBS - 1 {
+                OP_FROMALTSTACK
+            }
+        }
+    }
+
+    /// Doubles the [`BigInt`] at specified `depth`, resulting
+    /// in a new [`BigInt`] at the top of the stack.
+    pub(in super::super) fn handle_OP_2MUL_no_overflow(depth: usize) -> Script {
+        assert_eq!(depth, 0, "only depth=0 is supported");
+        script! {
+            { Self::BASE } // Adding base to the stack
+
+            // Double the limb, take the result to the alt stack
+            limb_double_carry OP_TOALTSTACK
+
+            for _ in 0..Self::N_LIMBS - 2 {
+                // Since we have {limb} {base} {carry} in the stack, we need to add carry
+                // to the next limb and double it.
+                OP_ROT // {base} {carry} {limb}
+                { crate::pseudo::OP_2MUL() } // {base} {carry} {2*limb}
+                OP_ADD // {base} {2*limb + carry}
+                OP_2DUP // {base} {2*limb + carry} {base} {2*limb + carry}
+                OP_LESSTHANOREQUAL // {base} {2*limb + carry} {base<=2*limb + carry}
+                OP_TUCK // {base} {base<=2*limb+carry} {2*limb+carry} {base<=2*limb+carry}
+                OP_IF
+                    2 OP_PICK OP_SUB
+                OP_ENDIF
+
+                OP_TOALTSTACK
+            }
+
+            // When we got {limb} {base} {carry} on the stack, we drop the base
+            OP_NIP // {limb} {carry}
+            OP_SWAP // {carry} {limb}
+            { crate::pseudo::OP_2MUL() } // {carry} {2*limb}
+            OP_ADD // {carry + 2*limb}
+            
+            // Take all limbs from the sum to the main stack
+            for _ in 0..Self::N_LIMBS - 1 {
+                OP_FROMALTSTACK
+            }
+        }
+    }
+
+    /// Adds two [`BigInt`]s from the stack, resulting in a new [`BigInt`] at the top of the stack.
+    pub(in super::super) fn handle_OP_ADD_no_overflow(depth_1: usize, depth_2: usize) -> Script {
+        script! {
+            // Zip the two BigInts from the stack
+            { Self::handle_OP_ZIP(depth_1, depth_2) }
+
+            // Push the base to the stack
+            { Self::BASE }
+
+            // Add two limbs, take the sum to the alt stack
             limb_add_carry OP_TOALTSTACK
 
-            // from     A1      + B1        + carry_0
-            //   to     A{N-2}  + B{N-2}    + carry_{N-3}
             for _ in 0..Self::N_LIMBS - 2 {
+                // Since we have {an} {bn} {base} {carry} in the stack, where an, bn
+                // represent the limbs, we do the following:
+                // OP_ROT: {a1} {base} {carry} {a2}
+                // OP_ADD: {a1} {base} {carry+a2}
+                // OP_SWAP: {a1} {carry+a2} {base}
+                // Then we add (a1+a2+carry) and repeat
                 OP_ROT
                 OP_ADD
                 OP_SWAP
                 limb_add_carry OP_TOALTSTACK
             }
 
-            // A{N-1} + B{N-1} + carry_{N-2}
+            // When we got (a1, b1, base, carry) on the stack, we drop the base, add carry to b1,
+            // and conduct the addition without returning a carry.
             OP_NIP
             OP_ADD
-            { limb_add_nocarry(Self::HEAD_OFFSET) }
+            OP_ADD // We do not check for overflowing here
 
+            // Take all limbs from the sum to the main stack
             for _ in 0..Self::N_LIMBS - 1 {
                 OP_FROMALTSTACK
             }
@@ -147,6 +240,26 @@ pub fn limb_add_carry() -> Script {
         OP_ADD OP_2DUP
         OP_LESSTHANOREQUAL
         OP_TUCK
+        OP_IF
+            2 OP_PICK OP_SUB
+        OP_ENDIF
+    }
+}
+
+/// Compute the limb doubled, including the carry bit.
+///
+/// **Input**: `{limb} {base}`
+///
+/// **Output**: `{base} {carry} {limb_doubled}`
+///
+/// where `limb_doubled` is `2*limb` if `carry` is `0`, and `2*limb-base` if `carry` is `1`.
+pub fn limb_double_carry() -> Script {
+    script! {
+        OP_SWAP // {base} {limb}
+        { crate::pseudo::OP_2MUL() } // {base} {2*limb}
+        OP_2DUP // {base} {2*limb} {base} {2*limb}
+        OP_LESSTHANOREQUAL // {base} {2*limb} {base<=2*limb}
+        OP_TUCK // {base} {base<=2*limb} {2*limb} {base<=2*limb}
         OP_IF
             2 OP_PICK OP_SUB
         OP_ENDIF

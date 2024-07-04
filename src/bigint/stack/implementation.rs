@@ -42,10 +42,14 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
     ///
     /// **Output:** `a0,b0,...,a{N-1},b{N-1}`
     pub(in super::super) fn handle_OP_ZIP(depth_1: usize, depth_2: usize) -> Script {
+        // If the depths are equal, we just perform the dupzip
+        if depth_1 == depth_2 {
+            return Self::handle_OP_DUPZIP(depth_1);
+        }
+
+        // Normalizing the depths
         let depth_1 = (depth_1 + 1) * Self::N_LIMBS - 1;
         let depth_2 = (depth_2 + 1) * Self::N_LIMBS - 1;
-
-        assert_ne!(depth_1, depth_2, "cannot zip the same element");
 
         if depth_1 < depth_2 {
             return script! {

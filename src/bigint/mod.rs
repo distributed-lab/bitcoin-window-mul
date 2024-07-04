@@ -11,7 +11,6 @@ pub mod stack;
 pub mod window;
 
 pub mod implementation;
-pub mod performance;
 
 /// Type alias for a 254-bit non-native big integer.
 pub type U254 = NonNativeBigIntImpl<254, 30>;
@@ -28,3 +27,6 @@ pub type U64 = NonNativeBigIntImpl<64, 16>;
 pub type U508 = NonNativeBigIntImpl<508, 30>;
 /// Type alias for a 512-bit non-native big integer.
 pub type U510 = NonNativeBigIntImpl<510, 15>;
+
+#[cfg(test)]
+pub mod performance;

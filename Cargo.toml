@@ -24,6 +24,7 @@ serde_json = "1.0.116"
 lazy_static = "1.4.0"
 bitcoin-script-stack = { git = "https://github.com/FairgateLabs/rust-bitcoin-script-stack"}
 prettytable-rs = "0.10.0"
+paste = "1.0"
 
 [dev-dependencies]
 rand_chacha = "0.3.1"
