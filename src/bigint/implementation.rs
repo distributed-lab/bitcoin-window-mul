@@ -19,8 +19,9 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeLimbInteger
     const N_BITS: usize = N_BITS;
 
     fn OP_WIDENINGMUL<Q>() -> Script
-        where
-            Q: NonNativeLimbInteger {
+    where
+        Q: NonNativeLimbInteger,
+    {
         Self::handle_OP_WIDENINGMUL::<Q>()
     }
 }

@@ -13,3 +13,4 @@ pub mod traits;
 
 pub mod debug;
 pub mod pseudo;
+pub mod script_loader;

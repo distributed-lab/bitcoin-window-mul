@@ -5,7 +5,7 @@ mod test {
     use prettytable::{row, Table};
 
     use crate::{
-        bigint::{U254Windowed, U254, U508},
+        bigint::{U254Windowed, U255Cmpeq, U254, U508, U510},
         traits::{arithmeticable::Arithmeticable, integer::NonNativeLimbInteger},
     };
 
@@ -17,16 +17,27 @@ mod test {
 
         let naive_script_wide = U254::OP_WIDENINGMUL::<U508>();
         let windowed_script_wide = U254Windowed::OP_WIDENINGMUL::<U508>();
+        let cmpeq_script_wide = U255Cmpeq::OP_WIDENINGMUL::<U510>();
 
         // Create the table
         let mut table = Table::new();
 
         // Add the headers
-        table.add_row(row!["Variant", "Naive (BitVM)", "Windowed (Ours)"]);
+        table.add_row(row!["Variant", "Naive (BitVM)", "Cmpeq", "Windowed (Ours)"]);
 
         // Add the data
-        table.add_row(row!["Narrow", naive_script_narrow.len(), windowed_script_narrow.len()]);
-        table.add_row(row!["Wide", naive_script_wide.len(), windowed_script_wide.len()]);
+        table.add_row(row![
+            "Narrow",
+            naive_script_narrow.len(),
+            "-",
+            windowed_script_narrow.len()
+        ]);
+        table.add_row(row![
+            "Wide",
+            naive_script_wide.len(),
+            cmpeq_script_wide.len(),
+            windowed_script_wide.len()
+        ]);
 
         // Print the table
         table.printstd();

@@ -209,8 +209,9 @@ where
     const LIMB_SIZE: usize = T::LIMB_SIZE;
 
     fn OP_WIDENINGMUL<Q>() -> Script
-        where
-            Q: NonNativeLimbInteger {
+    where
+        Q: NonNativeLimbInteger,
+    {
         Self::handle_OP_WIDENINGMUL::<Q>()
     }
 }
