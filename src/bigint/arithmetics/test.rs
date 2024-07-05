@@ -1,4 +1,6 @@
-use crate::bigint::arithmetics::add::{limb_add_carry, limb_double_carry, limb_sub_carry};
+use crate::bigint::arithmetics::add::{
+    limb_add_carry, limb_doubling_initial_carry, limb_sub_carry,
+};
 use crate::bigint::window::NonNativeWindowedBigIntImpl;
 use crate::bigint::{U254Windowed, U254, U508, U64};
 use crate::traits::arithmeticable::Arithmeticable;
@@ -172,7 +174,10 @@ fn test_64_and_254_bit_double() {
 fn test_254_bit_double_no_overflow() {
     const TESTS_NUM: usize = 100;
 
-    print_script_size("u254_double_no_overflow", U254::handle_OP_2MUL_no_overflow(0));
+    print_script_size(
+        "u254_double_no_overflow",
+        U254::handle_OP_2MUL_NOOVERFLOW(0),
+    );
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
     for _ in 0..TESTS_NUM {
@@ -181,7 +186,7 @@ fn test_254_bit_double_no_overflow() {
 
         let script = script! {
             { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
-            { U254::handle_OP_2MUL_no_overflow(0) }
+            { U254::handle_OP_2MUL_NOOVERFLOW(0) }
             { U254::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
             { U254::OP_EQUALVERIFY(1, 0) }
             OP_TRUE
@@ -305,7 +310,7 @@ fn test_limb_add_carry() {
 /// It generates a random 30-bit limb and initializes a base of 2^30 and
 /// then verifies the correctness of the output.
 #[test]
-fn test_limb_double_carry() {
+fn test_limb_doubling_initial_carry() {
     const BASE: u32 = 1 << 30;
     const TESTS_NUMBER: usize = 50;
 
@@ -314,13 +319,13 @@ fn test_limb_double_carry() {
         // Generate two limbs
         let limb: u32 = prng.gen_range(0..1 << 30);
 
-        let expected_carry = (2*limb >= BASE) as u32;
-        let expected_double = 2*limb - expected_carry * BASE;
+        let expected_carry = (2 * limb >= BASE) as u32;
+        let expected_double = 2 * limb - expected_carry * BASE;
 
         let script = script! {
             { limb }
             { BASE }
-            { limb_double_carry() }
+            { limb_doubling_initial_carry() }
             { expected_double }
             OP_EQUALVERIFY
             { expected_carry }

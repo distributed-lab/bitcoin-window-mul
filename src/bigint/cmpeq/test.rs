@@ -20,7 +20,7 @@ fn test_asm_files() {
 
     for (i, test_file) in asm_test_files.iter().enumerate() {
         println!("testing asm file {:?}...", i);
-        let test_script = AsmScriptLoader::from_str(test_file);
+        let test_script = AsmScriptLoader::from_raw_str(test_file);
         let exec_result = execute_script(test_script);
         assert!(exec_result.success, "test asm file {:?} is wrong!", i);
         println!("asm file {:?} is correct!", i);

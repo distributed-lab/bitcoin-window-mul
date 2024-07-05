@@ -74,7 +74,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> Arithmeticable
         Self::handle_OP_ADD(depth_1, depth_2)
     }
     fn OP_ADD_NOOVERFLOW(depth_1: usize, depth_2: usize) -> Script {
-        Self::handle_OP_ADD_no_overflow(depth_1, depth_2)
+        Self::handle_OP_ADD_NOOVERFLOW(depth_1, depth_2)
     }
     fn OP_ADD1() -> Script {
         Self::handle_OP_ADD1()
@@ -86,7 +86,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> Arithmeticable
         Self::handle_OP_2MUL(depth)
     }
     fn OP_2MUL_NOOVERFLOW(depth: usize) -> Script {
-        Self::handle_OP_2MUL_no_overflow(depth)
+        Self::handle_OP_2MUL_NOOVERFLOW(depth)
     }
     fn OP_MUL() -> Script {
         Self::handle_OP_MUL()

@@ -188,6 +188,6 @@ where
             U510::N_BITS,
             "only extension to u510 is supported"
         );
-        AsmScriptLoader::from_str(Self::WIDENINGMUL_SCRIPT)
+        AsmScriptLoader::from_raw_str(Self::WIDENINGMUL_SCRIPT)
     }
 }

@@ -58,25 +58,25 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
             OP_FROMALTSTACK
             OP_IF
                 { T::OP_PICK(1) }
-                { T::OP_ADD_NOOVERFLOW(1, 0) }
+                { T::OP_ADD(1, 0) }
             OP_ENDIF
 
             for _ in 1..Self::N_BITS - 1 {
                 { T::OP_ROLL(1) }
-                { T::OP_2MUL_NOOVERFLOW(0) }
+                { T::OP_2MUL(0) }
                 { T::OP_ROLL(1) }
                 OP_FROMALTSTACK
                 OP_IF
                     { T::OP_PICK(1) }
-                    { T::OP_ADD_NOOVERFLOW(1, 0) }
+                    { T::OP_ADD(1, 0) }
                 OP_ENDIF
             }
 
             { T::OP_ROLL(1) }
-            { T::OP_2MUL_NOOVERFLOW(0) }
+            { T::OP_2MUL(0) }
             OP_FROMALTSTACK
             OP_IF
-                { T::OP_ADD_NOOVERFLOW(1, 0) }
+                { T::OP_ADD(1, 0) }
             OP_ELSE
                 { T::OP_DROP() }
             OP_ENDIF
