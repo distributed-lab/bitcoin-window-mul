@@ -46,16 +46,12 @@ fn test_limb_to_be_bits() {
         let mut a: u32 = prng.gen();
         a %= 1 << 15;
 
-        println!("a = {:?}", a);
-
         let mut bits = vec![];
         let mut cur = a;
         for _ in 0..15 {
             bits.push(cur % 2);
             cur /= 2;
         }
-
-        println!("bits = {:?}", bits);
 
         let script = script! {
             { a }
