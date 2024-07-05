@@ -9,8 +9,8 @@ use crate::{
 };
 
 /// Structure representing a non-native big integer with `N_BITS` bits and `LIMB_SIZE` bits per limb
-/// implementing the [`NonNativeBigInt`] trait.
-pub struct NonNativeBigIntImpl<const N_BITS: usize, const LIMB_SIZE: usize> {}
+/// implementing the [`NonNativeInteger`] trait.
+pub struct NonNativeBigIntImpl<const N_BITS: usize, const LIMB_SIZE: usize>;
 
 impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeLimbInteger
     for NonNativeBigIntImpl<N_BITS, LIMB_SIZE>
@@ -73,6 +73,9 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> Arithmeticable
     fn OP_ADD(depth_1: usize, depth_2: usize) -> Script {
         Self::handle_OP_ADD(depth_1, depth_2)
     }
+    fn OP_ADD_NOOVERFLOW(depth_1: usize, depth_2: usize) -> Script {
+        Self::handle_OP_ADD_NOOVERFLOW(depth_1, depth_2)
+    }
     fn OP_ADD1() -> Script {
         Self::handle_OP_ADD1()
     }
@@ -81,6 +84,9 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> Arithmeticable
     }
     fn OP_2MUL(depth: usize) -> Script {
         Self::handle_OP_2MUL(depth)
+    }
+    fn OP_2MUL_NOOVERFLOW(depth: usize) -> Script {
+        Self::handle_OP_2MUL_NOOVERFLOW(depth)
     }
     fn OP_MUL() -> Script {
         Self::handle_OP_MUL()

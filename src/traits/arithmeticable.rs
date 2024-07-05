@@ -9,6 +9,10 @@ pub trait Arithmeticable {
     /// **Example:** `OP_ADD(0,1)` corresponds to adding the top two big integers
     fn OP_ADD(depth_1: usize, depth_2: usize) -> Script;
 
+    /// Adds two [`Arithmeticable`]s on the stack at
+    /// specified depths at pops them out assuming that no overflow occurs.
+    fn OP_ADD_NOOVERFLOW(depth_1: usize, depth_2: usize) -> Script;
+
     /// Adds `1` to the top [`Arithmeticable`] on the stack.
     fn OP_ADD1() -> Script;
 
@@ -16,6 +20,9 @@ pub trait Arithmeticable {
     ///
     /// **Example:** `OP_2MUL(0)` corresponds to multiplying the top big integer by 2.
     fn OP_2MUL(depth: usize) -> Script;
+
+    /// Multiplies the [`Arithmeticable`] at specified depth by 2 assuming that no overflow occurs.
+    fn OP_2MUL_NOOVERFLOW(depth: usize) -> Script;
 
     /// Subtracts two [`Arithmeticable`]s at the specified depths.
     ///

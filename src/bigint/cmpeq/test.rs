@@ -20,7 +20,7 @@ fn test_asm_files() {
 
     for (i, test_file) in asm_test_files.iter().enumerate() {
         println!("testing asm file {:?}...", i);
-        let test_script = AsmScriptLoader::from_str(test_file);
+        let test_script = AsmScriptLoader::from_raw_str(test_file);
         let exec_result = execute_script(test_script);
         assert!(exec_result.success, "test asm file {:?} is wrong!", i);
         println!("asm file {:?} is correct!", i);
@@ -31,25 +31,12 @@ fn test_asm_files() {
 /// https://bitcointalk.org/index.php?topic=5477449.0
 #[test]
 fn test_push_le_slice_255_bits() {
-    let example_number = BigUint::from_str("44347314585423944296568073680235476145090606693409235654433373536726375170836");
+    let example_number = BigUint::from_str(
+        "44347314585423944296568073680235476145090606693409235654433373536726375170836",
+    );
     let expected_limbs: Vec<u32> = vec![
-        25099,
-        22628,
-        4378,
-        17693,
-        627,
-        25528,
-        24377,
-        28384,
-        14745,
-        26534,
-        13152,
-        27940,
-        18633,
-        23354,
-        13719,
-        31767,
-        788,
+        25099, 22628, 4378, 17693, 627, 25528, 24377, 28384, 14745, 26534, 13152, 27940, 18633,
+        23354, 13719, 31767, 788,
     ];
 
     let script = script! {

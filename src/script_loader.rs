@@ -6,7 +6,7 @@ pub struct AsmScriptLoader;
 
 impl AsmScriptLoader {
     /// Converts the raw string into a script buffer.
-    pub fn from_str(raw: &str) -> ScriptBuf {
+    pub fn from_raw_str(raw: &str) -> ScriptBuf {
         let mut builder = Builder::new();
         let rows: Vec<String> = raw.split_whitespace().map(|s| s.to_string()).collect();
 
@@ -29,13 +29,13 @@ impl AsmScriptLoader {
     }
 
     /// Checks if the row is an integer push instruction.
-    fn is_push_instruction(row: &String) -> bool {
+    fn is_push_instruction(row: &str) -> bool {
         row.contains('<')
     }
 
     /// Parses the integer from the row.
-    fn parse_integer(row: &String) -> i64 {
-        row.replace(&['<', '>'], "")
+    fn parse_integer(row: &str) -> i64 {
+        row.replace(['<', '>'], "")
             .parse()
             .expect("unable to parse integer")
     }

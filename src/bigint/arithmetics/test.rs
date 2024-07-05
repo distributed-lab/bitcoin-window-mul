@@ -1,4 +1,6 @@
-use crate::bigint::arithmetics::add::{limb_add_carry, limb_sub_carry};
+use crate::bigint::arithmetics::add::{
+    limb_add_carry, limb_doubling_initial_carry, limb_sub_carry,
+};
 use crate::bigint::window::NonNativeWindowedBigIntImpl;
 use crate::bigint::{U254Windowed, U254, U508, U64};
 use crate::traits::arithmeticable::Arithmeticable;
@@ -80,6 +82,32 @@ fn test_508_bit_add() {
 }
 
 #[test]
+fn test_508_bit_add_no_overflow() {
+    const TESTS_NUMBER: usize = 100;
+
+    print_script_size("508_bit_add_no_overflow", U508::OP_ADD_NOOVERFLOW(1, 0));
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..TESTS_NUMBER {
+        let a: BigUint = prng.sample(RandomBits::new(507));
+        let b: BigUint = prng.sample(RandomBits::new(507));
+        let c: BigUint = a.clone() + b.clone();
+
+        let script = script! {
+            { U508::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U508::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+            { U508::OP_ADD_NOOVERFLOW(1, 0) }
+            { U508::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
+            { U508::OP_EQUALVERIFY(1, 0) }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+#[test]
 fn test_254_bit_sub() {
     print_script_size("254_bit_sub", U254::OP_SUB(1, 0));
 
@@ -135,6 +163,32 @@ fn test_64_and_254_bit_double() {
             { U64::OP_2MUL(0) }
             { U64::OP_PUSH_U64LESLICE(&[c]) }
             { U64::OP_EQUALVERIFY(1, 0) }
+            OP_TRUE
+        };
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+#[test]
+fn test_254_bit_double_no_overflow() {
+    const TESTS_NUM: usize = 100;
+
+    print_script_size(
+        "u254_double_no_overflow",
+        U254::handle_OP_2MUL_NOOVERFLOW(0),
+    );
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..TESTS_NUM {
+        let a: BigUint = prng.sample(RandomBits::new(253));
+        let c: BigUint = a.clone() + a.clone();
+
+        let script = script! {
+            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U254::handle_OP_2MUL_NOOVERFLOW(0) }
+            { U254::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
+            { U254::OP_EQUALVERIFY(1, 0) }
             OP_TRUE
         };
         let exec_result = execute_script(script);
@@ -239,6 +293,40 @@ fn test_limb_add_carry() {
             { BASE }
             { limb_add_carry() }
             { expected_sum}
+            OP_EQUALVERIFY
+            { expected_carry }
+            OP_EQUALVERIFY
+            { BASE }
+            OP_EQUALVERIFY
+            OP_TRUE
+        };
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+/// Tests the `limb_double_carry` method for doubling the limb.
+///
+/// It generates a random 30-bit limb and initializes a base of 2^30 and
+/// then verifies the correctness of the output.
+#[test]
+fn test_limb_doubling_initial_carry() {
+    const BASE: u32 = 1 << 30;
+    const TESTS_NUMBER: usize = 50;
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..TESTS_NUMBER {
+        // Generate two limbs
+        let limb: u32 = prng.gen_range(0..1 << 30);
+
+        let expected_carry = (2 * limb >= BASE) as u32;
+        let expected_double = 2 * limb - expected_carry * BASE;
+
+        let script = script! {
+            { limb }
+            { BASE }
+            { limb_doubling_initial_carry() }
+            { expected_double }
             OP_EQUALVERIFY
             { expected_carry }
             OP_EQUALVERIFY

@@ -70,8 +70,14 @@ where
     fn OP_2MUL(depth: usize) -> Script {
         T::OP_2MUL(depth)
     }
+    fn OP_2MUL_NOOVERFLOW(depth: usize) -> Script {
+        T::OP_2MUL_NOOVERFLOW(depth)
+    }
     fn OP_ADD(depth_1: usize, depth_2: usize) -> Script {
         T::OP_ADD(depth_1, depth_2)
+    }
+    fn OP_ADD_NOOVERFLOW(depth_1: usize, depth_2: usize) -> Script {
+        T::OP_ADD_NOOVERFLOW(depth_1, depth_2)
     }
     fn OP_SUB(depth_1: usize, depth_2: usize) -> Script {
         T::OP_SUB(depth_1, depth_2)
@@ -182,6 +188,6 @@ where
             U510::N_BITS,
             "only extension to u510 is supported"
         );
-        AsmScriptLoader::from_str(Self::WIDENINGMUL_SCRIPT)
+        AsmScriptLoader::from_raw_str(Self::WIDENINGMUL_SCRIPT)
     }
 }

@@ -615,6 +615,7 @@ dependencies = [
  "lazy_static",
  "num-bigint",
  "num-traits",
+ "paste",
  "prettytable-rs",
  "rand",
  "rand_chacha",

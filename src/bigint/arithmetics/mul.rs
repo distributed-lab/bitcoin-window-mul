@@ -157,7 +157,7 @@ where
             for _ in 0..Self::DECOMPOSITION_SIZE {
                 // Double the result WIDTH times
                 for _ in 0..WIDTH {
-                    { Q::OP_2MUL(0) }
+                    { Q::OP_2MUL_NOOVERFLOW(0) }
                 }
 
                 // Picking di from the stack
@@ -172,7 +172,7 @@ where
                 OP_SWAP
                 OP_SUB
                 { Q::OP_PICKSTACK() }
-                { Q::OP_ADD(0, 1) }
+                { Q::OP_ADD_NOOVERFLOW(0, 1) }
             }
 
             // Clearing the precomputed values from the stack.
