@@ -20,7 +20,7 @@ specify where you can find the corresponding unit test in the project.
 | `cargo test -- --nocapture test_mul_w_width_254bit` | Test our narrow multiplication algorithm | [`test.rs`](src/bigint/arithmetics/test.rs#L487) |
 | `cargo test -- --nocapture test_254_bit_widening_mul` | Test _BitVM_'s widening multiplication algorithm (extended by us) | [`test.rs`](src/bigint/arithmetics/test.rs#L457) |
 | `cargo test -- --nocapture test_64_and_254_bit_mul` | Test _BitVM_'s narrow multiplication algorithm (a bit optimized by us) | [`test.rs`](src/bigint/arithmetics/test.rs#L414) |
-| `cargo test -- --nocapture test_255_bit_cmpeq_widening_mul` | Test `cmpeq`'s widening multiplication algorithm | [`test.rs`](src/bigint/cmpeq/test.rs#L56) |
+| `cargo test -- --nocapture test_255_bit_cmpeq_widening_mul` | Test [`cmpeq`](https://bitcointalk.org/index.php?topic=5477449.0)'s widening multiplication algorithm | [`test.rs`](src/bigint/cmpeq/test.rs#L56) |
 | `cargo test -- --nocapture --ignored debug_mul_performance_comparison` | Compare the performance of several multiplication algorithms used | [`test.rs`](src/bigint/performance.rs#L14) |
 
 ## :zap: A few words about optimization
