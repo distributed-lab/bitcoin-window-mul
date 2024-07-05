@@ -282,7 +282,7 @@ pub(super) fn limb_doubling_step() -> Script {
 /// **Output**: `{base} {carry} {sub}`
 ///
 /// where `sub` is `num1-num2` if `carry` is `0`, and `base+(num1-num2)` if `carry` is `1`.
-pub fn limb_sub_carry() -> Script {
+pub(super) fn limb_sub_carry() -> Script {
     script! {
         OP_ROT OP_ROT
         OP_SUB
@@ -299,7 +299,7 @@ pub fn limb_sub_carry() -> Script {
 /// Compute the sum of two limbs, dropping the carry bit
 ///
 /// Optimized by: @wz14
-pub fn limb_add_nocarry(head_offset: u32) -> Script {
+pub(super) fn limb_add_nocarry(head_offset: u32) -> Script {
     script! {
         OP_ADD { head_offset } OP_2DUP
         OP_GREATERTHANOREQUAL
@@ -333,7 +333,7 @@ pub(super) fn limb_doubling_nocarry(head_offset: u32) -> Script {
 }
 
 /// Compute the sub of two limbs, dropping the carry bit
-pub fn limb_sub_nocarry(head_offset: u32) -> Script {
+pub(super) fn limb_sub_nocarry(head_offset: u32) -> Script {
     script! {
         OP_SUB 0 OP_2DUP
         OP_LESSTHAN
