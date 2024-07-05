@@ -3,7 +3,7 @@
 This repository contains the implementation of the Fast Multiplication algorithm in Bitcoin for two
 254-bit numbers.
 
-## :test_tube: How to test?
+## :interrobang: How to test?
 
 You can run all the tests by simply writing:
 
