@@ -4,7 +4,7 @@ use seq_macro::seq;
 
 use crate::bigint::window::precompute::WindowedPrecomputeTable;
 use crate::bigint::window::NonNativeWindowedBigIntImpl;
-use crate::bigint::{U254Windowed, U508};
+use crate::bigint::{U254, U508};
 use crate::pseudo::OP_4MUL;
 use crate::traits::arithmeticable::Arithmeticable;
 use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
@@ -109,9 +109,15 @@ where
             { WindowedPrecomputeTable::<T, WIDTH, false>::initialize() }
 
             // We initialize the result
-            { T::OP_0() }
+            // Note that we can simply pick the precomputed value
+            // since 0*16 is still 0, so we omit the doubling :)
+            OP_FROMALTSTACK 1 OP_ADD
+            { 1<<WIDTH }
+            OP_SWAP
+            OP_SUB
+            { T::OP_PICKSTACK() }
 
-            for _ in 0..Self::DECOMPOSITION_SIZE {
+            for _ in 1..Self::DECOMPOSITION_SIZE {
                 // Double the result WIDTH times
                 for _ in 0..WIDTH {
                     { T::OP_2MUL(0) }
@@ -144,7 +150,9 @@ where
     /// Multiplies the top two big integers on the stack
     /// represented as little-endian 32-bit limbs
     /// using w-width decomposition to get twice as large integer.
-    pub(in super::super) fn handle_OP_WIDENINGMUL<Q>() -> Script
+    /// Note: this is done lazily, that is operations are from the very
+    /// beginning are performed over U508.
+    pub(in super::super) fn handle_lazy_OP_WIDENINGMUL<Q>() -> Script
     where
         Q: NonNativeLimbInteger,
     {
@@ -200,19 +208,35 @@ where
             { Q::OP_FROMALTSTACK() }
         }
     }
+
+    /// Multiplies the top two big integers on the stack
+    /// represented as little-endian 32-bit limbs
+    /// using w-width decomposition to get twice as large integer. Chooses
+    /// the most optimal method if present.
+    pub(in super::super) fn handle_OP_WIDENINGMUL<Q>() -> Script 
+    where Q: NonNativeLimbInteger,
+    {
+        match Self::N_BITS {
+            U254::N_BITS => NonNativeWindowedBigIntImpl::<U254, 4>::handle_optimized_OP_WIDENINGMUL(),
+            _ => Self::handle_lazy_OP_WIDENINGMUL::<Q>(),
+        }
+    }
 }
 
+/// Special optimized implementation for U254 Windowed method
 #[allow(non_snake_case)]
-impl U254Windowed {
+impl NonNativeWindowedBigIntImpl<U254, 4> {
     /// Since copy operation requires input depth to be equal to
-    /// `Self::SELF_LIMBS + Self::OTHER_LIMBS * depth`, this function normalizes the depth
+    /// `Self::TOP_STACK_INT_LIMBS + Self::OTHER_LIMBS * depth`, this function normalizes the depth
     /// to the required value.
-    fn normalize_stack_depth<Q: NonNativeLimbInteger>() -> Script {
-        let q_n_limbs = (Q::N_BITS + Q::LIMB_SIZE - 1) / Q::LIMB_SIZE;
+    fn normalize_stack_depth<Q>() -> Script 
+    where Q: NonNativeLimbInteger{
+        let n_limbs = (Q::N_BITS + Q::LIMB_SIZE - 1) / Q::LIMB_SIZE;
+
         script! {
             OP_DUP OP_4MUL {crate::pseudo::OP_2MUL()} // Multiplying depth by 8
             OP_ADD // Adding depth to 8*depth to get 9*depth
-            { q_n_limbs }
+            { n_limbs }
             OP_ADD
         }
     }
