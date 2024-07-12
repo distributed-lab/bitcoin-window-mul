@@ -1,6 +1,7 @@
 use crate::bigint::arithmetics::add::{
     limb_add_carry, limb_doubling_initial_carry, limb_sub_carry,
 };
+use crate::bigint::implementation::NonNativeBigIntImpl;
 use crate::bigint::window::NonNativeWindowedBigIntImpl;
 use crate::bigint::{U254Windowed, U254, U508, U64};
 use crate::traits::arithmeticable::Arithmeticable;
@@ -8,6 +9,7 @@ use crate::traits::comparable::Comparable;
 use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
 use crate::{debug::print_script_size, treepp::*};
 use core::ops::{Add, Mul, Rem, Shl};
+use std::str::FromStr;
 use num_bigint::{BigUint, RandomBits, ToBigUint};
 use num_traits::One;
 use rand::{Rng, SeedableRng};
@@ -524,6 +526,139 @@ fn test_254_bit_windowed_widening_mul() {
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
     for _ in 0..TESTS_NUMBER {
+        let a: BigUint = prng.sample(RandomBits::new(100));
+        let b: BigUint = prng.sample(RandomBits::new(100));
+        let c: BigUint = a.clone() * b.clone();
+
+        let script = script! {
+            { U254Windowed::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U254Windowed::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+            { U254Windowed::OP_WIDENINGMUL::<U508>() }
+            { U508::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
+            { U508::OP_EQUALVERIFY(1, 0) }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+// Tests the multiplication of two 254-bit numbers and two 64-bit numbers.
+#[test]
+fn test_op_pick_stack_different_bits() {
+    const TESTS_NUMBER: usize = 10;
+
+    type U323 = NonNativeBigIntImpl<323, 30>;
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..TESTS_NUMBER {
+        let a: BigUint = prng.sample(RandomBits::new(254));
+        let b: BigUint = prng.sample(RandomBits::new(323));
+
+        let script = script! {
+            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U323::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+            { 1 }
+            { U254Windowed::handle_OP_PICKSTACK::<U323>() }
+            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U254::OP_EQUALVERIFY(1, 0) }
+            { U323::OP_DROP() }
+            { U254::OP_DROP() }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+// Tests the multiplication of two 254-bit numbers and two 64-bit numbers.
+#[test]
+fn test_op_pick_stack_and_add_different_bits() {
+    const TESTS_NUMBER: usize = 10;
+
+    type U456 = NonNativeBigIntImpl<456, 30>;
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..TESTS_NUMBER {
+        let a1: BigUint = prng.sample(RandomBits::new(254));
+        let a2: BigUint = prng.sample(RandomBits::new(254));
+        let a3: BigUint = prng.sample(RandomBits::new(254));
+        let a4: BigUint = prng.sample(RandomBits::new(254));
+        let b: BigUint = prng.sample(RandomBits::new(456));
+
+        let script = script! {
+            { U254::OP_PUSH_U32LESLICE(&a1.to_u32_digits()) }
+            { U254::OP_PUSH_U32LESLICE(&a2.to_u32_digits()) }
+            { U254::OP_PUSH_U32LESLICE(&a3.to_u32_digits()) }
+            { U254::OP_PUSH_U32LESLICE(&a4.to_u32_digits()) }
+            { U456::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+            { 3 }
+            { U254Windowed::handle_OP_PICKSTACK::<U456>() }
+            { U254::OP_EXTEND::<U456>() }
+            { U456::OP_ADD_NOOVERFLOW(1, 0) }
+            { U456::OP_DROP() }
+            { U254::OP_DROP() }
+            { U254::OP_DROP() }
+            { U254::OP_DROP() }
+            { U254::OP_DROP() }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+// Tests the multiplication of two 254-bit numbers and two 64-bit numbers.
+#[test]
+fn test_wtf() {
+    const TESTS_NUMBER: usize = 10;
+
+    type U268 = NonNativeBigIntImpl<268, 30>;
+    type U272 = NonNativeBigIntImpl<272, 30>;
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..TESTS_NUMBER {
+        let a: BigUint = prng.sample(RandomBits::new(268));
+        let b: BigUint = prng.sample(RandomBits::new(256));
+        let c: BigUint = a.clone().mul(BigUint::from_str("16").unwrap()).add(b.clone());
+
+        let script = script! {
+            { U268::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            
+            { U268::OP_EXTEND::<U272>() }
+            for _ in 0..4 {
+                { U272::OP_2MUL_NOOVERFLOW(0) }
+            }
+
+            { U268::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+            { U254::OP_EXTEND::<U272>() }
+            { U272::OP_ADD_NOOVERFLOW(0, 1) }
+            { U272::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
+            { U272::OP_EQUALVERIFY(0, 1) }
+
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+// Tests the multiplication of two 254-bit numbers and two 64-bit numbers.
+#[test]
+fn test_254_bit_windowed_widening_optimized_mul() {
+    const TESTS_NUMBER: usize = 10;
+
+    print_script_size(
+        "254-bit widening mul",
+        U254Windowed::handle_optimized_OP_WIDENINGMUL(),
+    );
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..TESTS_NUMBER {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone() * b.clone();
@@ -531,7 +666,7 @@ fn test_254_bit_windowed_widening_mul() {
         let script = script! {
             { U254Windowed::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
             { U254Windowed::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
-            { U254Windowed::OP_WIDENINGMUL::<U508>() }
+            { U254Windowed::handle_optimized_OP_WIDENINGMUL() }
             { U508::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
             { U508::OP_EQUALVERIFY(1, 0) }
             OP_TRUE

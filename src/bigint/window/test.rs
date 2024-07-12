@@ -1,9 +1,10 @@
 use crate::bigint::bits::implementation::limb_to_be_bits_toaltstack;
+use crate::bigint::implementation::NonNativeBigIntImpl;
 use crate::bigint::window::precompute::WindowedPrecomputeTable;
 use crate::bigint::window::{binary_to_windowed_form_toaltstack, NonNativeWindowedBigIntImpl};
 use crate::bigint::U254;
 use crate::traits::comparable::Comparable;
-use crate::traits::integer::NonNativeInteger;
+use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
 use crate::traits::window::Windowable;
 use crate::{debug::print_script_size, treepp::*};
 use ark_ff::{One, Zero};
@@ -219,18 +220,23 @@ fn test_254_bit_to_w_width() {
 }
 
 #[test]
-fn test_mul_width_3_precompute() {
+fn test_mul_width_3_nooverflow_precompute() {
     print_script_size(
         "254-bit 3-width precompute",
-        WindowedPrecomputeTable::<U254, 3>::initialize(),
+        WindowedPrecomputeTable::<U254, 3, true>::initialize(),
     );
+
+    const WIDTH: usize = 3;
+    // Since pushes require to specify the correct number of limbs,
+    // we need to extend the type to have enough bits to push the value
+    type U254Extended = NonNativeBigIntImpl<{ U254::N_BITS + WIDTH }, 30>;
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
     let a: BigUint = prng.sample(RandomBits::new(254));
 
     let expected_precomputed_values = {
         let mut precomputed_values: Vec<BigUint> = vec![];
-        for i in 0..1 << 3 {
+        for i in 0..1<<WIDTH {
             precomputed_values.push(i.to_biguint().unwrap() * a.clone());
         }
 
@@ -239,7 +245,7 @@ fn test_mul_width_3_precompute() {
 
     assert_eq!(
         expected_precomputed_values.len(),
-        1 << 3,
+        1 << WIDTH,
         "precomputed values are incorrect"
     );
     assert_eq!(
@@ -249,15 +255,15 @@ fn test_mul_width_3_precompute() {
     );
     assert_eq!(
         *expected_precomputed_values.last().unwrap(),
-        a.clone() * 7u32,
+        a.clone() * ((1<<WIDTH) - 1).to_biguint().unwrap(),
         "precomputed values are incorrect"
     );
 
     let script = script! {
         { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
-        { WindowedPrecomputeTable::<U254, 3>::initialize() }
+        { WindowedPrecomputeTable::<U254, WIDTH, true>::initialize() }
         for expected_value in expected_precomputed_values.iter().rev() {
-            { U254::OP_PUSH_U32LESLICE(&expected_value.to_u32_digits()) }
+            { U254Extended::OP_PUSH_U32LESLICE(&expected_value.to_u32_digits()) }
             { U254::OP_EQUALVERIFY(1, 0) }
         }
         OP_TRUE
@@ -268,11 +274,15 @@ fn test_mul_width_3_precompute() {
 }
 
 #[test]
-fn test_lazy_mul_width_w_precompute() {
+fn test_lazy_mul_width_w_nooverflow_precompute() {
     const WIDTH: usize = 4;
+    // Since pushes require to specify the correct number of limbs,
+    // we need to extend the type to have enough bits to push the value
+    type U254Extended = NonNativeBigIntImpl<{ U254::N_BITS + WIDTH }, 30>;
+
     print_script_size(
         format!("254-bit {:?}-width lazy precompute", WIDTH).as_str(),
-        WindowedPrecomputeTable::<U254, 3>::lazy_initialize(),
+        WindowedPrecomputeTable::<U254, 3, true>::lazy_initialize(),
     );
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
@@ -305,9 +315,9 @@ fn test_lazy_mul_width_w_precompute() {
 
     let script = script! {
         { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
-        { WindowedPrecomputeTable::<U254, WIDTH>::lazy_initialize() }
+        { WindowedPrecomputeTable::<U254, WIDTH, true>::lazy_initialize() }
         for expected_value in expected_precomputed_values.iter().rev() {
-            { U254::OP_PUSH_U32LESLICE(&expected_value.to_u32_digits()) }
+            { U254Extended::OP_PUSH_U32LESLICE(&expected_value.to_u32_digits()) }
             { U254::OP_EQUALVERIFY(1, 0) }
         }
         OP_TRUE
