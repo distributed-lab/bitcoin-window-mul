@@ -27,7 +27,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeLimbInteger
 }
 
 impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LIMB_SIZE> {
-    /// Number of bits per limb
+    /// Number of limbs
     pub(super) const N_LIMBS: usize = (N_BITS + LIMB_SIZE - 1) / LIMB_SIZE;
     /// Base of the big integer is u32
     pub(super) const BASE: u32 = 1u32 << LIMB_SIZE;
