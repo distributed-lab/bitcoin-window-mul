@@ -16,10 +16,10 @@ specify where you can find the corresponding unit test in the project.
 
 | Command | Description | Location |
 | --- | --- | --- |
-| `cargo test -- --nocapture test_254_bit_windowed_widening_optimized_mul` | Test our widening multiplication algorithm | [`test.rs`](src/bigint/arithmetics/test.rs#L517) |
-| `cargo test -- --nocapture test_254_bit_narrow_mul_w_width` | Test our narrow multiplication algorithm | [`test.rs`](src/bigint/arithmetics/test.rs#L487) |
-| `cargo test -- --nocapture test_254_bit_windowed_lazy_widening_mul` | Test _BitVM_'s widening multiplication algorithm (extended by us) | [`test.rs`](src/bigint/arithmetics/test.rs#L457) |
-| `cargo test -- --nocapture test_254_bit_naive_widening_mul` | Test _BitVM_'s narrow multiplication algorithm (a bit optimized by us) | [`test.rs`](src/bigint/arithmetics/test.rs#L414) |
+| `cargo test -- --nocapture test_254_bit_windowed_widening_optimized_mul` | Test our widening multiplication algorithm | [`test.rs`](src/bigint/arithmetics/test.rs#L641) |
+| `cargo test -- --nocapture test_254_bit_narrow_mul_w_width` | Test our narrow multiplication algorithm | [`test.rs`](src/bigint/arithmetics/test.rs#L489) |
+| `cargo test -- --nocapture test_254_bit_windowed_lazy_widening_mul` | Test _BitVM_'s widening multiplication algorithm (extended by us) | [`test.rs`](src/bigint/arithmetics/test.rs#L519) |
+| `cargo test -- --nocapture test_254_bit_naive_widening_mul` | Test _BitVM_'s narrow multiplication algorithm (a bit optimized by us) | [`test.rs`](src/bigint/arithmetics/test.rs#L459) |
 | `cargo test -- --nocapture test_255_bit_cmpeq_widening_mul` | Test [`cmpeq`](https://bitcointalk.org/index.php?topic=5477449.0)'s widening multiplication algorithm | [`test.rs`](src/bigint/cmpeq/test.rs#L56) |
 | `cargo test -- --nocapture --ignored debug_mul_performance_comparison` | Compare the performance of several multiplication algorithms used | [`test.rs`](src/bigint/performance.rs#L14) |
 
