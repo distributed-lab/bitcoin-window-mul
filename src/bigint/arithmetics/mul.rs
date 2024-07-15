@@ -263,6 +263,43 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
     /// represented as little-endian 32-bit limbs
     /// using w-width decomposition to get twice as large integer.
     pub(in super::super) fn handle_optimized_OP_WIDENINGMUL() -> Script {
+        // The main loop script, see explanation in the returned script down below
+        let main_loop_script = {
+            let mut script_var = Vec::new();
+            // Iterating 63 times (omitting the first iteration, we have already done it)
+            seq!(N in 1..64 { #(
+                let next_script = Builder::new()
+                    // Extending the result to 256+4*N bits from 256*4(N-1) bits
+                    .push_expression(NonNativeBigIntImpl::<{ 256 + 4*(N-1) }, 30>::OP_EXTEND::<NonNativeBigIntImpl::<{ 256 + 4*N }, 30>>())
+                    // First, multiply by 16 without caring for overflow
+                    .push_expression({
+                        let mut script_var = Vec::new();
+                        for _ in 0..4 {
+                            let next_script = Builder::new()
+                                .push_expression(NonNativeBigIntImpl::<{ 256 + 4*N }, 30>::OP_2MUL_NOOVERFLOW(0))
+                                .0
+                                .into_script();
+                            script_var.extend_from_slice(next_script.as_bytes());
+                        }
+                        Script::from(script_var)
+                    })
+                    // Taking coefficient, finding 16-coefficient and picking it
+                    .push_opcode(OP_FROMALTSTACK)
+                    .push_expression(1<<4)
+                    .push_opcode(OP_SWAP)
+                    .push_opcode(OP_SUB)
+                    .push_expression(Self::handle_OP_PICKSTACK::<NonNativeBigIntImpl::<{ 256 + 4*N }, 30>>())
+                    // Since we need to only care about last limbs,
+                    // we do not extend the result
+                    .push_expression(NonNativeBigIntImpl::<256, 30>::OP_ADD_NOOVERFLOW(0, 1))
+                    .0
+                    .into_script();
+                script_var.extend_from_slice(next_script.as_bytes());
+            )* });
+
+            Script::from(script_var)
+        };
+
         pushable::Builder::new()
             // Push w-width form to the stack
             .push_expression(Self::OP_TOBEWINDOWEDFORM_TOALTSTACK())
@@ -282,40 +319,7 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
             .push_expression(Self::OP_PICKSTACK())
             // At this point, we have a 256-bit number in the stack
             // Now the interesting part: the loop
-            .push_expression({
-                let mut script_var = Vec::new();
-                // Iterating 63 times (omitting the first iteration, we have already done it)
-                seq!(N in 1..64 { #(
-                    let next_script = Builder::new()
-                        // Extending the result to 256+4*N bits from 256*4(N-1) bits
-                        .push_expression(NonNativeBigIntImpl::<{ 256 + 4*(N-1) }, 30>::OP_EXTEND::<NonNativeBigIntImpl::<{ 256 + 4*N }, 30>>())
-                        // First, multiply by 16 without caring for overflow
-                        .push_expression({
-                            let mut script_var = Vec::new();
-                            for _ in 0..4 {
-                                let next_script = Builder::new()
-                                    .push_expression(NonNativeBigIntImpl::<{ 256 + 4*N }, 30>::OP_2MUL_NOOVERFLOW(0))
-                                    .0
-                                    .into_script();
-                                script_var.extend_from_slice(next_script.as_bytes());
-                            }
-                            Script::from(script_var)
-                        })
-                        // Taking coefficient, finding 16-coefficient and picking it
-                        .push_opcode(OP_FROMALTSTACK)
-                        .push_expression(1<<4)
-                        .push_opcode(OP_SWAP)
-                        .push_opcode(OP_SUB)
-                        .push_expression(Self::handle_OP_PICKSTACK::<NonNativeBigIntImpl::<{ 256 + 4*N }, 30>>())
-                        // Since we need to only care about last limbs,
-                        // we do not extend the result
-                        .push_expression(NonNativeBigIntImpl::<256, 30>::OP_ADD_NOOVERFLOW(0, 1))
-                        .0
-                        .into_script();
-                    script_var.extend_from_slice(next_script.as_bytes());
-                )* });
-                Script::from(script_var)
-            })
+            .push_expression(main_loop_script)
             // Moving result to the altstack
             .push_expression(U508::OP_TOALTSTACK())
             .push_expression({
