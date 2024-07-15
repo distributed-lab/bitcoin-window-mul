@@ -223,7 +223,7 @@ where
 }
 
 /// Converts the limb from the top stack which has `num_bits` bits in size to
-/// 3-width representation.
+/// `WIDTH` representation.
 pub fn binary_to_windowed_form<const WIDTH: usize>(num_bits: usize) -> Script {
     // The number of coefficients in the w-width form
     let decomposition_size = get_decomposition_size(num_bits, WIDTH);
@@ -255,7 +255,7 @@ pub fn binary_to_windowed_form<const WIDTH: usize>(num_bits: usize) -> Script {
 }
 
 /// Converts the limb from the top stack which has `num_bits` bits in size to
-/// 3-width representation. It pushes all the coefficients to the alt stack
+/// `WIDTH` representation. It pushes all the coefficients to the alt stack
 pub fn binary_to_windowed_form_toaltstack<const WIDTH: usize>(num_bits: usize) -> Script {
     // The number of coefficients in the w-width form
     let decomposition_size = get_decomposition_size(num_bits, WIDTH);

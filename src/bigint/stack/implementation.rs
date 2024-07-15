@@ -221,7 +221,6 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
         let n_limbs_extension = (T::N_BITS + T::LIMB_SIZE - 1) / T::LIMB_SIZE;
         let n_limbs_add = n_limbs_extension - n_limbs_self;
 
-        //let bits_to_add = T::N_LI - Self::N_BITS;
         script! {
             { OP_CLONE(0, n_limbs_add) } // Pushing zeros to the stack
             for _ in 0..n_limbs_self {
