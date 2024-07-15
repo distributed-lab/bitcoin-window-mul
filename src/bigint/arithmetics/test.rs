@@ -456,7 +456,7 @@ fn test_64_and_254_bit_narrow_mul() {
 
 /// Tests the widening multiplication of two 254-bit numbers using initial BitVM approach.
 #[test]
-fn test_254_bit_widening_mul() {
+fn test_254_bit_naive_widening_mul() {
     const TESTS_NUMBER: usize = 10;
 
     print_script_size(

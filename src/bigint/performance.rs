@@ -9,8 +9,6 @@ use crate::{
     treepp::*,
 };
 
-use super::arithmetics::u29x9::u29x9_mul_karazuba;
-
 #[test]
 #[ignore = "performance debugging"]
 fn debug_mul_performance_comparison() {
@@ -20,19 +18,17 @@ fn debug_mul_performance_comparison() {
     let naive_script_wide = U254::OP_WIDENINGMUL::<U508>();
     let windowed_script_wide = U254Windowed::OP_WIDENINGMUL::<U508>();
     let cmpeq_script_wide = U255Cmpeq::OP_WIDENINGMUL::<U510>();
-    let u29x9_karatsuba_script_wide = u29x9_mul_karazuba(0, 1);
 
     // Create the table
     let mut table = Table::new();
 
     // Add the headers
-    table.add_row(row!["Variant", "Naive (BitVM)", "Cmpeq", "Karatsuba (BitVM)", "Windowed (Ours)"]);
+    table.add_row(row!["Variant", "Naive (BitVM)", "Cmpeq", "Windowed (Ours)"]);
 
     // Add the data
     table.add_row(row![
         "Narrow",
         naive_script_narrow.len(),
-        "-",
         "-",
         windowed_script_narrow.len()
     ]);
@@ -40,7 +36,6 @@ fn debug_mul_performance_comparison() {
         "Wide",
         naive_script_wide.len(),
         cmpeq_script_wide.len(),
-        u29x9_karatsuba_script_wide.len(),
         windowed_script_wide.len()
     ]);
 

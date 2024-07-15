@@ -1,3 +1,5 @@
+//! u29x9 implementation of 254-bit integer taken from 
+//! https://github.com/BitVM/BitVM/blob/main/src/bigint/u29x9.rs
 use crate::bigint::U254;
 use crate::traits::integer::NonNativeInteger;
 use crate::treepp::*;
