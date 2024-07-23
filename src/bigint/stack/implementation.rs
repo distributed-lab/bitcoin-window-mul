@@ -216,16 +216,25 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
             T::N_BITS > Self::N_BITS,
             "The integer to be extended must have more bits than the current integer"
         );
+        assert!(
+            T::LIMB_SIZE == Self::LIMB_SIZE,
+            "The integers to be extended must have the same number of bits in limb"
+        );
 
         let n_limbs_self = (Self::N_BITS + Self::LIMB_SIZE - 1) / Self::LIMB_SIZE;
         let n_limbs_extension = (T::N_BITS + T::LIMB_SIZE - 1) / T::LIMB_SIZE;
         let n_limbs_add = n_limbs_extension - n_limbs_self;
 
-        script! {
-            { OP_CLONE(0, n_limbs_add) } // Pushing zeros to the stack
-            for _ in 0..n_limbs_self {
-                { n_limbs_extension - 1 } OP_ROLL
+        if n_limbs_add != 0 {
+            script! {
+                { OP_CLONE(0, n_limbs_add) } // Pushing zeros to the stack
+                for _ in 0..n_limbs_self {
+                    { n_limbs_extension - 1 } OP_ROLL
+                }
             }
+        } else {
+            // do nothing if there's no difference in number of limbs
+            script! {}
         }
     }
 }
