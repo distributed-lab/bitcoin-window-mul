@@ -2482,6 +2482,9 @@ pub fn u29x9_mullo_karazuba_imm(u29x9_constant: [u32; 9]) -> Script {
 
 #[cfg(test)]
 mod test {
+    use num_bigint::{BigUint, ToBigUint};
+    use num_traits::Num;
+
     use super::*;
 
     #[test]
@@ -2931,6 +2934,114 @@ mod test {
             {462446669} OP_EQUALVERIFY
             {16468} OP_EQUALVERIFY
 
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        if !exec_result.success {
+            println!("ERROR: {:?} <---", exec_result.last_opcode)
+        }
+        assert!(exec_result.success);
+    }
+
+    #[test]
+    fn test_ok_karatsuba() {
+        // a = 24133949880731741070967440267171399832000178166199632338328823211417665908178
+        let mut a_limbs = [342207954, 116753807, 376147813, 288906385, 133303557, 249817110, 425630328, 472655952, 3496788];
+        a_limbs.reverse();
+        // b = 610990842555808256479416999566867153573707939749329091819331167507343814221
+        let mut b_limbs = [489500237, 348710751, 478572014, 327028975, 205033230, 51384832, 310058803, 532492513, 88526];
+        b_limbs.reverse();
+        // c = a*b = 14745622371827934658247520931439306451022343716938769594614646909999909227378629437610215188068784181279027930841844323661836440144632482282104476599338
+        let c_limbs = [532349994, 456707830, 88462249, 261005821, 169405823, 243310496, 6934417, 157223619, 140057918, 494485263, 373411589, 181929885, 529092407, 14348323, 423324646, 318144234, 322555384, 576];
+
+        // Verifying that representation is indeed correct
+        let a = BigUint::from_str_radix("24133949880731741070967440267171399832000178166199632338328823211417665908178", 10).unwrap();
+        let b = BigUint::from_str_radix("610990842555808256479416999566867153573707939749329091819331167507343814221", 10).unwrap();
+        let c = a.clone() * b.clone();
+
+        let a_from_limbs = a_limbs.iter().rev().enumerate().fold(BigUint::ZERO, |acc, (i, &limb)| {
+            acc + limb.to_biguint().unwrap() * 2.to_biguint().unwrap().pow(29u32*(i as u32))
+        });
+        let b_from_limbs = b_limbs.iter().rev().enumerate().fold(BigUint::ZERO, |acc, (i, &limb)| {
+            acc + limb.to_biguint().unwrap() * 2.to_biguint().unwrap().pow(29u32*(i as u32))
+        });
+        let c_from_limbs = c_limbs.iter().enumerate().fold(BigUint::ZERO, |acc, (i, &limb)| {
+            acc + limb.to_biguint().unwrap() * 2.to_biguint().unwrap().pow(29u32*(i as u32))
+        });
+
+        assert_eq!(a, a_from_limbs, "a: {} != {}", a, a_from_limbs);
+        assert_eq!(b, b_from_limbs, "b: {} != {}", b, b_from_limbs);
+        assert_eq!(c, c_from_limbs, "c: {} != {}", c, c_from_limbs);
+
+        let script = script! {
+            // a = 12838400041569762277875866273622067372834144894183552230323586368573854707873
+            for limb in a_limbs.iter() {
+                { *limb }
+            }
+            // b = 12116567230055104958896179710693813240304922523423971011655615816553311188606
+            for limb in b_limbs.iter() {
+                { *limb }
+            }
+            // a * b
+            { u29x9_mul_karazuba(1, 0) }
+            for limb in c_limbs.iter() {
+                { *limb } OP_EQUALVERIFY
+            }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        if !exec_result.success {
+            println!("ERROR: {:?} <---", exec_result.last_opcode)
+        }
+        assert!(exec_result.success);
+    }
+
+    #[test]
+    fn test_failing_karatsuba() {
+        // a = 12838400041569762277875866273622067372834144894183552230323586368573854707873
+        let mut a_limbs = [251392161, 76417593, 322218854, 4575022, 213708969, 30281290, 452617583, 478133379, 1860166];
+        a_limbs.reverse();
+        // b = 12116567230055104958896179710693813240304922523423971011655615816553311188606
+        let mut b_limbs = [396834430, 313023680, 452519848, 332307263, 110485459, 153128662, 87914389, 488530259, 1755579];
+        b_limbs.reverse();
+        // c = a*b
+        let c_limbs = [348742974, 208258069, 79931764, 125701150, 42571047, 133642396, 509221810, 19526062, 10013866, 481184108, 121466454, 402594459, 425203927, 407824012, 371627209, 407764493, 422735510, 6082];
+
+        // Verifying that representation is indeed correct
+        let a = BigUint::from_str_radix("12838400041569762277875866273622067372834144894183552230323586368573854707873", 10).unwrap();
+        let b = BigUint::from_str_radix("12116567230055104958896179710693813240304922523423971011655615816553311188606", 10).unwrap();
+        let c = a.clone() * b.clone();
+
+        let a_from_limbs = a_limbs.iter().rev().enumerate().fold(BigUint::ZERO, |acc, (i, &limb)| {
+            acc + limb.to_biguint().unwrap() * 2.to_biguint().unwrap().pow(29u32*(i as u32))
+        });
+        let b_from_limbs = b_limbs.iter().rev().enumerate().fold(BigUint::ZERO, |acc, (i, &limb)| {
+            acc + limb.to_biguint().unwrap() * 2.to_biguint().unwrap().pow(29u32*(i as u32))
+        });
+        let c_from_limbs = c_limbs.iter().enumerate().fold(BigUint::ZERO, |acc, (i, &limb)| {
+            acc + limb.to_biguint().unwrap() * 2.to_biguint().unwrap().pow(29u32*(i as u32))
+        });
+
+        assert_eq!(a, a_from_limbs, "a: {} != {}", a, a_from_limbs);
+        assert_eq!(b, b_from_limbs, "b: {} != {}", b, b_from_limbs);
+        assert_eq!(c, c_from_limbs, "c: {} != {}", c, c_from_limbs);
+
+        let script = script! {
+            // a = 12838400041569762277875866273622067372834144894183552230323586368573854707873
+            for limb in a_limbs.iter() {
+                { *limb }
+            }
+            // b = 12116567230055104958896179710693813240304922523423971011655615816553311188606
+            for limb in b_limbs.iter() {
+                { *limb }
+            }
+            // a * b
+            { u29x9_mul_karazuba(1, 0) }
+            for limb in c_limbs.iter() {
+                { *limb } OP_EQUALVERIFY
+            }
             OP_TRUE
         };
 
