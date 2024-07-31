@@ -3,7 +3,7 @@ use crate::bigint::arithmetics::add::{
 };
 use crate::bigint::implementation::NonNativeBigIntImpl;
 use crate::bigint::window::NonNativeWindowedBigIntImpl;
-use crate::bigint::{U254Windowed, U254, U508, U64};
+use crate::bigint::{U254Windowed, U254_29Windowed, U254, U254_29, U508, U508_29, U64};
 use crate::traits::arithmeticable::Arithmeticable;
 use crate::traits::comparable::Comparable;
 use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
@@ -673,6 +673,36 @@ fn test_254_bit_windowed_widening_optimized_mul() {
             { U254Windowed::OP_WIDENINGMUL::<U508>() }
             { U508::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
             { U508::OP_EQUALVERIFY(1, 0) }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}
+
+#[test]
+fn test_254_bit_29_windowed_widening_optimized_mul() {
+    use super::u29x9::u29x9_mul_karazuba;
+
+    print_script_size("254-bit karatsuba widening mul", u29x9_mul_karazuba(1, 0));
+    print_script_size(
+        "254-bit 29 windowed widening mul",
+        U254_29Windowed::handle_optimized_OP_WIDENINGMUL(),
+    );
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..*TESTS_NUMBER {
+        let a: BigUint = prng.sample(RandomBits::new(254));
+        let b: BigUint = prng.sample(RandomBits::new(254));
+        let c: BigUint = a.clone() * b.clone();
+
+        let script = script! {
+            { U254_29Windowed::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U254_29Windowed::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+            { U254_29Windowed::handle_optimized_OP_WIDENINGMUL() }
+            { U508_29::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
+            { U508_29::OP_EQUALVERIFY(1, 0) }
             OP_TRUE
         };
 
