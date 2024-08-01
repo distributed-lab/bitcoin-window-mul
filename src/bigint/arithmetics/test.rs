@@ -28,12 +28,15 @@ const LAZY_TESTS: bool = {
     }
 };
 
+const TESTS_NUM: usize = if LAZY_TESTS { 10 } else { 1000 };
+
 #[test]
 fn test_64_and_254_bit_add() {
     print_script_size("254_bit_add", U254::OP_ADD(1, 0));
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..100 {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = (a.clone() + b.clone()).rem(BigUint::one().shl(254));
@@ -51,7 +54,7 @@ fn test_64_and_254_bit_add() {
         assert!(exec_result.success);
     }
 
-    for _ in 0..100 {
+    for _ in 0..TESTS_NUM {
         let a: u64 = prng.gen();
         let b: u64 = prng.gen();
         let c = a.wrapping_add(b);
@@ -73,11 +76,10 @@ fn test_64_and_254_bit_add() {
 #[test]
 fn test_508_bit_add() {
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if LAZY_TESTS { 100 } else { 1000 };
-
     print_script_size("508_bit_add", U508::OP_ADD(1, 0));
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
+
     for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(507));
         let b: BigUint = prng.sample(RandomBits::new(507));
@@ -100,11 +102,10 @@ fn test_508_bit_add() {
 #[test]
 fn test_508_bit_add_no_overflow() {
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if LAZY_TESTS { 100 } else { 1000 };
-
     print_script_size("508_bit_add_no_overflow", U508::OP_ADD_NOOVERFLOW(1, 0));
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
+
     for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(507));
         let b: BigUint = prng.sample(RandomBits::new(507));
@@ -129,7 +130,8 @@ fn test_254_bit_sub() {
     print_script_size("254_bit_sub", U254::OP_SUB(1, 0));
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..100 {
+
+    for _ in 0..TESTS_NUM {
         let mut a: BigUint = prng.sample(RandomBits::new(254));
         let mut b: BigUint = prng.sample(RandomBits::new(254));
         if b > a {
@@ -156,7 +158,8 @@ fn test_64_and_254_bit_double() {
     print_script_size("u254_double", U254::OP_2MUL(0));
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..100 {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = (a.clone() + a.clone()).rem(BigUint::one().shl(254));
 
@@ -171,7 +174,7 @@ fn test_64_and_254_bit_double() {
         assert!(exec_result.success);
     }
 
-    for _ in 0..100 {
+    for _ in 0..TESTS_NUM {
         let a: u64 = prng.gen();
         let c = a.wrapping_add(a);
 
@@ -190,14 +193,13 @@ fn test_64_and_254_bit_double() {
 #[test]
 fn test_254_bit_double_no_overflow() {
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if LAZY_TESTS { 100 } else { 1000 };
-
     print_script_size(
         "u254_double_no_overflow",
         U254::handle_OP_2MUL_NOOVERFLOW(0),
     );
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
+
     for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(253));
         let c: BigUint = a.clone() + a.clone();
@@ -217,7 +219,8 @@ fn test_254_bit_double_no_overflow() {
 #[test]
 fn test_16_mul() {
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..100 {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = (16.to_biguint().unwrap() * a.clone()).rem(BigUint::one().shl(254));
 
@@ -235,7 +238,7 @@ fn test_16_mul() {
         assert!(exec_result.success);
     }
 
-    for _ in 0..100 {
+    for _ in 0..TESTS_NUM {
         let a: u64 = prng.gen();
         let c = a.wrapping_add(a);
 
@@ -254,7 +257,8 @@ fn test_16_mul() {
 #[test]
 fn test_64_and_256_bit_2mul() {
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..100 {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = (256.to_biguint().unwrap() * a.clone()).rem(BigUint::one().shl(254));
 
@@ -271,7 +275,7 @@ fn test_64_and_256_bit_2mul() {
         assert!(exec_result.success);
     }
 
-    for _ in 0..100 {
+    for _ in 0..TESTS_NUM {
         let a: u64 = prng.gen();
         let c = a.wrapping_add(a);
 
@@ -294,10 +298,9 @@ fn test_64_and_256_bit_2mul() {
 #[test]
 fn test_limb_add_carry() {
     const BASE: u32 = 1 << 30;
-    #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if LAZY_TESTS { 50 } else { 500 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
+
     for _ in 0..TESTS_NUM {
         // Generate two limbs
         let limb_1: u32 = prng.gen_range(0..1 << 30);
@@ -331,10 +334,9 @@ fn test_limb_add_carry() {
 #[test]
 fn test_limb_doubling_initial_carry() {
     const BASE: u32 = 1 << 30;
-    #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if LAZY_TESTS { 50 } else { 500 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
+
     for _ in 0..TESTS_NUM {
         // Generate two limbs
         let limb: u32 = prng.gen_range(0..1 << 30);
@@ -366,10 +368,9 @@ fn test_limb_doubling_initial_carry() {
 #[test]
 fn test_limb_sub_carry() {
     const BASE: i32 = 1 << 30;
-    #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if LAZY_TESTS { 50 } else { 500 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
+
     for _ in 0..TESTS_NUM {
         // Generate two limbs
         let limb_1: i32 = prng.gen_range(0..1 << 30);
@@ -399,7 +400,8 @@ fn test_limb_sub_carry() {
 #[test]
 fn test_64_and_254_bit_increment() {
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..100 {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = (a.clone().add(BigUint::one())).rem(BigUint::one().shl(254));
 
@@ -414,7 +416,7 @@ fn test_64_and_254_bit_increment() {
         assert!(exec_result.success);
     }
 
-    for _ in 0..100 {
+    for _ in 0..TESTS_NUM {
         let a: u64 = prng.gen();
         let c = a.wrapping_add(1u64);
 
@@ -436,7 +438,8 @@ fn test_64_and_254_bit_narrow_mul() {
     print_script_size("254-bit narrow naive mul", U254::OP_MUL());
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..3 {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone().mul(b.clone()).rem(BigUint::one().shl(254));
@@ -454,7 +457,7 @@ fn test_64_and_254_bit_narrow_mul() {
         assert!(exec_result.success);
     }
 
-    for _ in 0..3 {
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(64));
         let b: BigUint = prng.sample(RandomBits::new(64));
         let c: BigUint = (a.clone().mul(b.clone())).rem(BigUint::one().shl(64));
@@ -481,10 +484,9 @@ fn test_254_bit_naive_widening_mul() {
         U254::handle_OP_WIDENINGMUL::<U508>(),
     );
 
-    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
-
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUMBER {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone() * b.clone();
@@ -512,10 +514,9 @@ fn test_254_bit_narrow_mul_w_width() {
 
     print_script_size("254-bit w-width narrow mul", U254Windowed::OP_MUL());
 
-    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
-
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUMBER {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone().mul(b.clone()).rem(BigUint::one().shl(254));
@@ -542,10 +543,9 @@ fn test_254_bit_windowed_lazy_widening_mul() {
         U254Windowed::handle_lazy_OP_WIDENINGMUL::<U508>(),
     );
 
-    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
-
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUMBER {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(100));
         let b: BigUint = prng.sample(RandomBits::new(100));
         let c: BigUint = a.clone() * b.clone();
@@ -569,10 +569,10 @@ fn test_254_bit_windowed_lazy_widening_mul() {
 #[test]
 fn test_op_pick_stack_and_add_different_bits() {
     type U456 = NonNativeBigIntImpl<456, 30>;
-    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUMBER {
+
+    for _ in 0..TESTS_NUM {
         // Generating 4 254-bit numbers and put 456-bit number in the front
         let a1: BigUint = prng.sample(RandomBits::new(254));
         let a2: BigUint = prng.sample(RandomBits::new(254));
@@ -622,10 +622,9 @@ fn test_optimized_multiplication_step() {
     // additional space before conducting operations
     type U272 = NonNativeBigIntImpl<272, 30>;
 
-    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
-
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUMBER {
+
+    for _ in 0..TESTS_NUM {
         // On each step we want to get 16*a + b, where a is initially
         // 268 bits and later extended to 272 bits, and b is 256 bits.
         let a: BigUint = prng.sample(RandomBits::new(268));
@@ -666,10 +665,9 @@ fn test_254_bit_windowed_widening_optimized_mul() {
         U254Windowed::OP_WIDENINGMUL::<U508>(),
     );
 
-    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
-
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUMBER {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone() * b.clone();
@@ -698,10 +696,9 @@ fn test_254_bit_29_windowed_widening_optimized_mul() {
         U254_29x9Windowed::handle_optimized_OP_WIDENINGMUL(),
     );
 
-    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
-
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..TESTS_NUMBER {
+
+    for _ in 0..TESTS_NUM {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone() * b.clone();
