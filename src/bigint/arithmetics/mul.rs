@@ -2,10 +2,10 @@ use bitcoin::opcodes::all::{OP_ADD, OP_FROMALTSTACK, OP_SUB, OP_SWAP};
 use bitcoin_script_stack::debugger::pushable::Builder;
 use seq_macro::seq;
 
+use crate::bigint::arithmetics::add::limb_add_carry;
 use crate::bigint::window::precompute::WindowedPrecomputeTable;
 use crate::bigint::window::NonNativeWindowedBigIntImpl;
-use crate::bigint::{U254Windowed, U254_29Windowed, U254, U254_29, U508, U508_29};
-use crate::debug::print_script_size;
+use crate::bigint::{U254_29x9, U508_29x18, U254, U508};
 use crate::pseudo::OP_4MUL;
 use crate::traits::arithmeticable::Arithmeticable;
 use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
@@ -222,8 +222,8 @@ where
             (U254::N_BITS, U254::LIMB_SIZE) => {
                 NonNativeWindowedBigIntImpl::<U254, 4>::handle_optimized_OP_WIDENINGMUL()
             }
-            (U254_29::N_BITS, U254_29::LIMB_SIZE) => {
-                NonNativeWindowedBigIntImpl::<U254_29, 4>::handle_optimized_OP_WIDENINGMUL()
+            (U254_29x9::N_BITS, U254_29x9::LIMB_SIZE) => {
+                NonNativeWindowedBigIntImpl::<U254_29x9, 4>::handle_optimized_OP_WIDENINGMUL()
             }
             _ => Self::handle_lazy_OP_WIDENINGMUL::<Q>(),
         }
@@ -268,23 +268,24 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
         }
     }
 
-    pub fn add_extended_to_bigger<Q: NonNativeLimbInteger>() -> Script {
-        type ExtendedBy4 = NonNativeBigIntImpl<258, 30>;
+    /// Adds extended Self to bigger integer Q
+    /// Uses addition and then propagates only carry further,
+    /// decreasing amount of opcodes needed
+    fn OP_ADD_EXTENDED_SELF_TO_BIGGER<Q: NonNativeLimbInteger>() -> Script {
+        type ExtendedU254By4Bits = NonNativeBigIntImpl<258, 30>;
 
         let n_limbs_other = (Q::N_BITS + Q::LIMB_SIZE - 1) / Q::LIMB_SIZE;
 
-        use super::add::limb_add_carry;
-
         script! {
-                { ExtendedBy4::handle_OP_ZIP(0, 1) }
+                { ExtendedU254By4Bits::handle_OP_ZIP(0, 1) }
 
                 // Push the base to the stack
-                { ExtendedBy4::BASE }
+                { ExtendedU254By4Bits::BASE }
 
                 // Add two limbs, take the sum to the alt stack
                 limb_add_carry OP_TOALTSTACK
 
-                for _ in 0..ExtendedBy4::N_LIMBS - 1 {
+                for _ in 0..ExtendedU254By4Bits::N_LIMBS - 1 {
                     // Since we have {an} {bn} {base} {carry} in the stack, where an, bn
                     // represent the limbs, we do the following:
                     // OP_ROT: {a1} {base} {carry} {a2}
@@ -300,7 +301,7 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
                 // Now we have (base, carry) on the stack.
                 // we sequentially add carry to the next limb, get carry back, repeat
 
-                for _ in 0..n_limbs_other - ExtendedBy4::N_LIMBS {
+                for _ in 0..n_limbs_other - ExtendedU254By4Bits::N_LIMBS {
                     OP_ROT // {base} {carry} {num}
 
                     OP_ADD // {base} {num + carry}
@@ -326,7 +327,7 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
     /// represented as little-endian 32-bit limbs
     /// using w-width decomposition to get twice as large integer.
     pub(in super::super) fn handle_optimized_OP_WIDENINGMUL() -> Script {
-        type ExtendedBy4 = NonNativeBigIntImpl<258, 30>;
+        type ExtendedU254By4Bits = NonNativeBigIntImpl<258, 30>;
 
         // The main loop script, see explanation in the returned script down below
         let main_loop_script = {
@@ -353,11 +354,9 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
                     .push_expression(1<<4)
                     .push_opcode(OP_SWAP)
                     .push_opcode(OP_SUB)
-                    // here it's ok to use Self since U254 and U258 have the same number of limbs
+                    // here it's ok to use Self since U254 and ExtendedU254By4Bits have the same number of limbs
                     .push_expression(Self::handle_OP_PICKSTACK::<NonNativeBigIntImpl::<{ 256 + 4*N }, 30>>())
-                    // .push_expression(Self::OP_EXTEND::<NonNativeBigIntImpl<{256 + 4*N}, 30>>())
-                    // .push_expression(<NonNativeBigIntImpl<{256 + 4*N}, 30>>::OP_ADD(1,0 ))
-                    .push_expression(Self::add_extended_to_bigger::<NonNativeBigIntImpl<{256 + 4*N}, 30>>())
+                    .push_expression(Self::OP_ADD_EXTENDED_SELF_TO_BIGGER::<NonNativeBigIntImpl<{256 + 4*N}, 30>>())
                     .0
                     .into_script();
                 script_var.extend_from_slice(next_script.as_bytes());
@@ -372,8 +371,8 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
             // Initialize precompute table to the stack
             // Since 256 bits fits in 9x30 limbs, we do not need
             // to extend anything, extending just in case, no overhead
-            .push_expression(Self::OP_EXTEND::<ExtendedBy4>())
-            .push_expression(WindowedPrecomputeTable::<ExtendedBy4, 4, true>::initialize())
+            .push_expression(Self::OP_EXTEND::<ExtendedU254By4Bits>())
+            .push_expression(WindowedPrecomputeTable::<ExtendedU254By4Bits, 4, true>::initialize())
             // Making the first iteration of the loop (without the initial doubling step)
             // Taking coefficient, finding 16-coefficient and picking
             // corresponding precomputed value
@@ -383,7 +382,7 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
             .push_expression(1 << 4)
             .push_opcode(OP_SWAP)
             .push_opcode(OP_SUB)
-            // U254 and ExtendedBy4 (U258) have the same number of limbs, so it's ok
+            // U254 and ExtendedU254By4Bits (U258) have the same number of limbs, so it's ok
             .push_expression(Self::OP_PICKSTACK())
             // At this point, we have a 256-bit number in the stack
             // because the first window contains only 2 bits
@@ -396,7 +395,7 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
                 let mut script_var = Vec::new();
                 for _ in 0..1 << 4 {
                     let next_script = Builder::new()
-                        .push_expression(ExtendedBy4::OP_DROP())
+                        .push_expression(ExtendedU254By4Bits::OP_DROP())
                         .0
                         .into_script();
                     script_var.extend_from_slice(next_script.as_bytes());
@@ -410,9 +409,9 @@ impl NonNativeWindowedBigIntImpl<U254, 4> {
     }
 }
 
-/// Special optimized implementation for U254 Windowed method
+/// Special optimized implementation for U254_29x9 Windowed method
 #[allow(non_snake_case)]
-impl NonNativeWindowedBigIntImpl<U254_29, 4> {
+impl NonNativeWindowedBigIntImpl<U254_29x9, 4> {
     /// Since copy operation requires input depth to be equal to
     /// `Self::TOP_STACK_INT_LIMBS + Self::OTHER_LIMBS * depth`, this function normalizes the depth
     /// to the required value.
@@ -448,23 +447,24 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
         }
     }
 
-    pub fn add_extended_to_bigger<Q: NonNativeLimbInteger>() -> Script {
-        type ExtendedBy4 = NonNativeBigIntImpl<258, 29>;
+    /// Adds extended Self to bigger integer Q
+    /// Uses addition and then propagates only carry further,
+    /// decreasing amount of opcodes needed
+    fn OP_ADD_EXTENDED_SELF_TO_BIGGER<Q: NonNativeLimbInteger>() -> Script {
+        type ExtendedU254_29x9By4Bits = NonNativeBigIntImpl<258, 29>;
 
         let n_limbs_other = (Q::N_BITS + Q::LIMB_SIZE - 1) / Q::LIMB_SIZE;
 
-        use super::add::limb_add_carry;
-
         script! {
-                { ExtendedBy4::handle_OP_ZIP(0, 1) }
+                { ExtendedU254_29x9By4Bits::handle_OP_ZIP(0, 1) }
 
                 // Push the base to the stack
-                { ExtendedBy4::BASE }
+                { ExtendedU254_29x9By4Bits::BASE }
 
                 // Add two limbs, take the sum to the alt stack
                 limb_add_carry OP_TOALTSTACK
 
-                for _ in 0..ExtendedBy4::N_LIMBS - 1 {
+                for _ in 0..ExtendedU254_29x9By4Bits::N_LIMBS - 1 {
                     // Since we have {an} {bn} {base} {carry} in the stack, where an, bn
                     // represent the limbs, we do the following:
                     // OP_ROT: {a1} {base} {carry} {a2}
@@ -477,10 +477,10 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
                     limb_add_carry OP_TOALTSTACK
                 }
 
-                // Now we have (base, carry) on the stack.
+                // Now we have {base} {carry} on the stack.
                 // we sequentially add carry to the next limb, get carry back, repeat
 
-                if n_limbs_other == ExtendedBy4::N_LIMBS {
+                if n_limbs_other == ExtendedU254_29x9By4Bits::N_LIMBS {
                     OP_2DROP
 
                     // Take all limbs from the alt stack to the main stack
@@ -488,7 +488,7 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
                         OP_FROMALTSTACK
                     }
                 } else {
-                    for _ in 0..n_limbs_other - ExtendedBy4::N_LIMBS - 1 {
+                    for _ in 0..n_limbs_other - ExtendedU254_29x9By4Bits::N_LIMBS - 1 {
                         OP_ROT // {base} {carry} {num}
 
                         OP_ADD // {base} {num + carry}
@@ -524,7 +524,7 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
     /// represented as little-endian 32-bit limbs
     /// using w-width decomposition to get twice as large integer.
     pub(in super::super) fn handle_optimized_OP_WIDENINGMUL() -> Script {
-        type ExtendedBy4 = NonNativeBigIntImpl<258, 29>;
+        type ExtendedU254_29x9By4Bits = NonNativeBigIntImpl<258, 29>;
 
         // The main loop script, see explanation in the returned script down below
         let main_loop_script = {
@@ -545,13 +545,6 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
                             script_var.extend_from_slice(next_script.as_bytes());
                         }
                         Script::from(script_var)
-
-                        // super::shl::shl::<NonNativeBigIntImpl::<{ 256 + 4 * N}, 29>>(4)
-                        
-                        // let limbs_old = (256 + 4 * (N-1) + 29 - 1) / 29;
-                        // let limbs_new = (256 + 4 * N + 29 - 1) / 29;
-                        // let extend = limbs_old != limbs_new;
-                        // super::shl::shl4_overflowing_29(limbs_old, extend)
                     })
                     // Taking coefficient, finding 16-coefficient and picking it
                     .push_opcode(OP_FROMALTSTACK)
@@ -560,9 +553,7 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
                     .push_opcode(OP_SUB)
                     // here it's ok to use Self since U254 and U258 have the same number of limbs
                     .push_expression(Self::handle_OP_PICKSTACK::<NonNativeBigIntImpl::<{ 256 + 4*N }, 29>>())
-                    // .push_expression(Self::OP_EXTEND::<NonNativeBigIntImpl<{256 + 4*N}, 29>>())
-                    // .push_expression(<NonNativeBigIntImpl<{256 + 4*N}, 29>>::OP_ADD(1,0 ))
-                    .push_expression(Self::add_extended_to_bigger::<NonNativeBigIntImpl<{256 + 4*N}, 29>>())
+                    .push_expression(Self::OP_ADD_EXTENDED_SELF_TO_BIGGER::<NonNativeBigIntImpl<{256 + 4*N}, 29>>())
                     .0
                     .into_script();
                 script_var.extend_from_slice(next_script.as_bytes());
@@ -577,8 +568,10 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
             // Initialize precompute table to the stack
             // Since 256 bits fits in 9x30 limbs, we do not need
             // to extend anything, extending just in case, no overhead
-            .push_expression(Self::OP_EXTEND::<ExtendedBy4>())
-            .push_expression(WindowedPrecomputeTable::<ExtendedBy4, 4, true>::initialize())
+            .push_expression(Self::OP_EXTEND::<ExtendedU254_29x9By4Bits>())
+            .push_expression(
+                WindowedPrecomputeTable::<ExtendedU254_29x9By4Bits, 4, true>::initialize(),
+            )
             // Making the first iteration of the loop (without the initial doubling step)
             // Taking coefficient, finding 16-coefficient and picking
             // corresponding precomputed value
@@ -588,20 +581,20 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
             .push_expression(1 << 4)
             .push_opcode(OP_SWAP)
             .push_opcode(OP_SUB)
-            // U254 and ExtendedBy4 (U258) have the same number of limbs, so it's ok
+            // U254 and ExtendedU254_29x9By4Bits (U258) have the same number of limbs, so it's ok
             .push_expression(Self::OP_PICKSTACK())
             // At this point, we have a 256-bit number in the stack
             // because the first window contains only 2 bits
             // Now the interesting part: the loop
             .push_expression(main_loop_script)
             // Moving result to the altstack
-            .push_expression(U508_29::OP_TOALTSTACK())
+            .push_expression(U508_29x18::OP_TOALTSTACK())
             .push_expression({
                 // Remvoing precomputed values from the stack
                 let mut script_var = Vec::new();
                 for _ in 0..1 << 4 {
                     let next_script = Builder::new()
-                        .push_expression(ExtendedBy4::OP_DROP())
+                        .push_expression(ExtendedU254_29x9By4Bits::OP_DROP())
                         .0
                         .into_script();
                     script_var.extend_from_slice(next_script.as_bytes());
@@ -609,7 +602,7 @@ impl NonNativeWindowedBigIntImpl<U254_29, 4> {
                 Script::from(script_var)
             })
             // Returning our element to the stack
-            .push_expression(U508_29::OP_FROMALTSTACK())
+            .push_expression(U508_29x18::OP_FROMALTSTACK())
             .0
             .into_script()
     }

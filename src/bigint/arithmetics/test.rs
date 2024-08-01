@@ -3,34 +3,30 @@ use crate::bigint::arithmetics::add::{
 };
 use crate::bigint::implementation::NonNativeBigIntImpl;
 use crate::bigint::window::NonNativeWindowedBigIntImpl;
-use crate::bigint::{U254Windowed, U254_29Windowed, U254, U254_29, U508, U508_29, U64};
+use crate::bigint::{U254Windowed, U254_29x9Windowed, U508_29x18, U254, U508, U64};
 use crate::traits::arithmeticable::Arithmeticable;
 use crate::traits::comparable::Comparable;
 use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
 use crate::{debug::print_script_size, treepp::*};
 use core::ops::{Add, Mul, Rem, Shl};
+use konst::eq_str;
 use num_bigint::{BigUint, RandomBits, ToBigUint};
 use num_traits::One;
 use rand::{Rng, SeedableRng};
 use rand_chacha::ChaCha20Rng;
-use std::env::{var, VarError};
 use std::str::FromStr;
-use std::sync::LazyLock;
 
-static LAZY_TESTS: LazyLock<bool> = LazyLock::new(|| {
-    match var("LAZY_TESTS") {
-        Ok(var) => match var.as_str(){
-            "true" => true,
-            "false" => false,
-            _ => panic!("Can not determine the value of LAZY_TESTS environment variable - if must be `true` or `false`"),
+const LAZY_TESTS: bool = {
+    let lazy_tests = option_env!("LAZY_TESTS");
+    match lazy_tests {
+        None => true,
+        Some(lazy_tests) => match () {
+            _ if eq_str(lazy_tests, "true") => true,
+            _ if eq_str(lazy_tests, "false") => false,
+            _ => panic!("Please set LAZT_TESTS environment variable to 'true' or 'false'"),
         },
-        Err(VarError::NotPresent) => true,
-        Err(VarError::NotUnicode(_)) => panic!("Can not determine the value of LAZY_TESTS environment variable: not unicode"),
-
-}
-});
-
-static TESTS_NUMBER: LazyLock<usize> = LazyLock::new(|| if *LAZY_TESTS { 10 } else { 1000 });
+    }
+};
 
 #[test]
 fn test_64_and_254_bit_add() {
@@ -77,7 +73,7 @@ fn test_64_and_254_bit_add() {
 #[test]
 fn test_508_bit_add() {
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if *LAZY_TESTS { 100 } else { 1000 };
+    let TESTS_NUM: usize = if LAZY_TESTS { 100 } else { 1000 };
 
     print_script_size("508_bit_add", U508::OP_ADD(1, 0));
 
@@ -104,7 +100,7 @@ fn test_508_bit_add() {
 #[test]
 fn test_508_bit_add_no_overflow() {
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if *LAZY_TESTS { 100 } else { 1000 };
+    let TESTS_NUM: usize = if LAZY_TESTS { 100 } else { 1000 };
 
     print_script_size("508_bit_add_no_overflow", U508::OP_ADD_NOOVERFLOW(1, 0));
 
@@ -194,7 +190,7 @@ fn test_64_and_254_bit_double() {
 #[test]
 fn test_254_bit_double_no_overflow() {
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if *LAZY_TESTS { 100 } else { 1000 };
+    let TESTS_NUM: usize = if LAZY_TESTS { 100 } else { 1000 };
 
     print_script_size(
         "u254_double_no_overflow",
@@ -299,7 +295,7 @@ fn test_64_and_256_bit_2mul() {
 fn test_limb_add_carry() {
     const BASE: u32 = 1 << 30;
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if *LAZY_TESTS { 50 } else { 500 };
+    let TESTS_NUM: usize = if LAZY_TESTS { 50 } else { 500 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
     for _ in 0..TESTS_NUM {
@@ -336,7 +332,7 @@ fn test_limb_add_carry() {
 fn test_limb_doubling_initial_carry() {
     const BASE: u32 = 1 << 30;
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if *LAZY_TESTS { 50 } else { 500 };
+    let TESTS_NUM: usize = if LAZY_TESTS { 50 } else { 500 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
     for _ in 0..TESTS_NUM {
@@ -371,7 +367,7 @@ fn test_limb_doubling_initial_carry() {
 fn test_limb_sub_carry() {
     const BASE: i32 = 1 << 30;
     #[allow(non_snake_case)]
-    let TESTS_NUM: usize = if *LAZY_TESTS { 50 } else { 500 };
+    let TESTS_NUM: usize = if LAZY_TESTS { 50 } else { 500 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
     for _ in 0..TESTS_NUM {
@@ -485,8 +481,10 @@ fn test_254_bit_naive_widening_mul() {
         U254::handle_OP_WIDENINGMUL::<U508>(),
     );
 
+    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
+
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..*TESTS_NUMBER {
+    for _ in 0..TESTS_NUMBER {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone() * b.clone();
@@ -514,8 +512,10 @@ fn test_254_bit_narrow_mul_w_width() {
 
     print_script_size("254-bit w-width narrow mul", U254Windowed::OP_MUL());
 
+    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
+
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..*TESTS_NUMBER {
+    for _ in 0..TESTS_NUMBER {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone().mul(b.clone()).rem(BigUint::one().shl(254));
@@ -542,8 +542,10 @@ fn test_254_bit_windowed_lazy_widening_mul() {
         U254Windowed::handle_lazy_OP_WIDENINGMUL::<U508>(),
     );
 
+    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
+
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..*TESTS_NUMBER {
+    for _ in 0..TESTS_NUMBER {
         let a: BigUint = prng.sample(RandomBits::new(100));
         let b: BigUint = prng.sample(RandomBits::new(100));
         let c: BigUint = a.clone() * b.clone();
@@ -567,9 +569,10 @@ fn test_254_bit_windowed_lazy_widening_mul() {
 #[test]
 fn test_op_pick_stack_and_add_different_bits() {
     type U456 = NonNativeBigIntImpl<456, 30>;
+    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
 
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..*TESTS_NUMBER {
+    for _ in 0..TESTS_NUMBER {
         // Generating 4 254-bit numbers and put 456-bit number in the front
         let a1: BigUint = prng.sample(RandomBits::new(254));
         let a2: BigUint = prng.sample(RandomBits::new(254));
@@ -619,8 +622,10 @@ fn test_optimized_multiplication_step() {
     // additional space before conducting operations
     type U272 = NonNativeBigIntImpl<272, 30>;
 
+    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
+
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..*TESTS_NUMBER {
+    for _ in 0..TESTS_NUMBER {
         // On each step we want to get 16*a + b, where a is initially
         // 268 bits and later extended to 272 bits, and b is 256 bits.
         let a: BigUint = prng.sample(RandomBits::new(268));
@@ -661,8 +666,10 @@ fn test_254_bit_windowed_widening_optimized_mul() {
         U254Windowed::OP_WIDENINGMUL::<U508>(),
     );
 
+    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
+
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..*TESTS_NUMBER {
+    for _ in 0..TESTS_NUMBER {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone() * b.clone();
@@ -688,21 +695,23 @@ fn test_254_bit_29_windowed_widening_optimized_mul() {
     print_script_size("254-bit karatsuba widening mul", u29x9_mul_karazuba(1, 0));
     print_script_size(
         "254-bit 29 windowed widening mul",
-        U254_29Windowed::handle_optimized_OP_WIDENINGMUL(),
+        U254_29x9Windowed::handle_optimized_OP_WIDENINGMUL(),
     );
 
+    const TESTS_NUMBER: usize = if LAZY_TESTS { 10 } else { 1000 };
+
     let mut prng = ChaCha20Rng::seed_from_u64(0);
-    for _ in 0..*TESTS_NUMBER {
+    for _ in 0..TESTS_NUMBER {
         let a: BigUint = prng.sample(RandomBits::new(254));
         let b: BigUint = prng.sample(RandomBits::new(254));
         let c: BigUint = a.clone() * b.clone();
 
         let script = script! {
-            { U254_29Windowed::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
-            { U254_29Windowed::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
-            { U254_29Windowed::handle_optimized_OP_WIDENINGMUL() }
-            { U508_29::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
-            { U508_29::OP_EQUALVERIFY(1, 0) }
+            { U254_29x9Windowed::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U254_29x9Windowed::OP_PUSH_U32LESLICE(&b.to_u32_digits()) }
+            { U254_29x9Windowed::handle_optimized_OP_WIDENINGMUL() }
+            { U508_29x18::OP_PUSH_U32LESLICE(&c.to_u32_digits()) }
+            { U508_29x18::OP_EQUALVERIFY(1, 0) }
             OP_TRUE
         };
 
