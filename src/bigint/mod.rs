@@ -28,5 +28,12 @@ pub type U508 = NonNativeBigIntImpl<508, 30>;
 /// Type alias for a 512-bit non-native big integer.
 pub type U510 = NonNativeBigIntImpl<510, 15>;
 
+/// Type alias for a 254-bit non-native big integer. Equivalent to the one used in bitvm.
+pub type U254_29x9 = NonNativeBigIntImpl<254, 29>;
+/// Type alias for a 254-bit non-native big integer with window size of 4.
+pub type U254_29x9Windowed = NonNativeWindowedBigIntImpl<U254_29x9, 4>;
+/// Type alias for a 508-bit non-native big integer. Equivalent to the one used in bitvm.
+pub type U508_29x18 = NonNativeBigIntImpl<508, 29>;
+
 #[cfg(test)]
 pub mod performance;
