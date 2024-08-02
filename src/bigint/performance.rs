@@ -9,34 +9,45 @@ use crate::{
     treepp::*,
 };
 
+use super::arithmetics::u29x9::u29x9_mul_karazuba;
+
 #[test]
 #[ignore = "performance debugging"]
 fn debug_mul_performance_comparison() {
-    let naive_script_narrow = U254::OP_MUL();
-    let windowed_script_narrow = U254Windowed::OP_MUL();
+    let naive_script_overflowing = U254::OP_MUL();
+    let windowed_script_overflowing = U254Windowed::OP_MUL();
 
-    let naive_script_wide = U254::OP_WIDENINGMUL::<U508>();
-    let windowed_script_wide = U254Windowed::OP_WIDENINGMUL::<U508>();
-    let cmpeq_script_wide = U255Cmpeq::OP_WIDENINGMUL::<U510>();
+    let naive_script_widening = U254::OP_WIDENINGMUL::<U508>();
+    let windowed_script_widening = U254Windowed::OP_WIDENINGMUL::<U508>();
+    let cmpeq_script_widening = U255Cmpeq::OP_WIDENINGMUL::<U510>();
+    let u29x9_karatsuba_script_widening = u29x9_mul_karazuba(0, 1);
 
     // Create the table
     let mut table = Table::new();
 
     // Add the headers
-    table.add_row(row!["Variant", "Naive (BitVM)", "Cmpeq", "Windowed (Ours)"]);
+    table.add_row(row!["Approach", "Overflowing", "Widening"]);
 
     // Add the data
     table.add_row(row![
-        "Narrow",
-        naive_script_narrow.len(),
+        "Cmpeq",
         "-",
-        windowed_script_narrow.len()
+        cmpeq_script_widening.len(),
     ]);
     table.add_row(row![
-        "Wide",
-        naive_script_wide.len(),
-        cmpeq_script_wide.len(),
-        windowed_script_wide.len()
+        "BitVM bigint",
+        naive_script_overflowing.len(),
+        naive_script_widening.len(),
+    ]);
+    table.add_row(row![
+        "BitVM Karatsuba",
+        "-",
+        u29x9_karatsuba_script_widening.len(),
+    ]);
+    table.add_row(row![
+        "Our w-width method",
+        windowed_script_overflowing.len(),
+        windowed_script_widening.len(),
     ]);
 
     // Print the table

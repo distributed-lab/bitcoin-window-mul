@@ -23,7 +23,7 @@ const LAZY_TESTS: bool = {
         Some(lazy_tests) => match () {
             _ if eq_str(lazy_tests, "true") => true,
             _ if eq_str(lazy_tests, "false") => false,
-            _ => panic!("Please set LAZT_TESTS environment variable to 'true' or 'false'"),
+            _ => panic!("Please set LAZY_TESTS environment variable to true or false"),
         },
     }
 };
