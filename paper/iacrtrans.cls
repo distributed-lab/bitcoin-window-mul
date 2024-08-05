@@ -160,7 +160,7 @@
     \fi
     \hypersetup{pdflang=en}
     \hypersetup{colorlinks=true,
-      citecolor=black!70!green,
+      citecolor=blue!80,
       linkcolor=black!70!red}
     % Disable latexdiff commands in PDF links
     \pdfstringdefDisableCommands{%
