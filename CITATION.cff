@@ -1,0 +1,54 @@
+cff-version: 1.2.0
+title: >-
+  Optimizing Big Integer Multiplication on Bitcoin:
+  Introducing w-windowed Approach
+message: >-
+  If you use this software, please cite it using the
+  metadata from this file.
+type: software
+authors:
+  - given-names: Dmytro
+    family-names: Zakharov
+    email: dmytro.zakharov@distributedlab.com
+    affiliation: Distributed Lab
+    orcid: 'https://orcid.org/0000-0001-9519-2444'
+  - given-names: Oleksandr
+    family-names: Kurbatov
+    email: ok@distributedlab.com
+    affiliation: Distributed Lab
+    orcid: 'https://orcid.org/0000-0002-8237-4377'
+  - given-names: Manish
+    family-names: Bista
+    affiliation: Alpen Labs
+    email: manish@alpenlabs.io
+  - given-names: Belove
+    family-names: Bist
+    email: belove@alpenlabs.io
+    affiliation: Alpen Labs
+identifiers:
+  - type: url
+    value: 'https://eprint.iacr.org/2024/1236'
+    description: 'Cryptology ePrint Archive, Paper 2024/1236'
+repository-code: 'https://github.com/distributed-lab/bitcoin-window-mul'
+abstract: >-
+  A crucial component of any zero-knowledge system is
+  operations with finite fields. This, in turn, leads to the
+  implementation of the fundamental operation: multiplying
+  two big integers. In the realm of Bitcoin, this problem
+  gets revisited, as Bitcoin utilizes its own stack-based
+  and not Turing-complete scripting system called Bitcoin
+  Script. Inspired by Elliptic Curve scalar multiplication,
+  this paper introduces the w-windowed method for multiplying
+  two numbers. We outperform state-of-the-art approaches,
+  including BitVMs implementation. Finally, we also show
+  how the windowed method can lead to optimizations not only
+  in big integer arithmetic solely but in more general
+  arithmetic problems.
+keywords:
+  - Bitcoin
+  - Bitcoin Script
+  - Fast Multiplication
+  - Elliptic Curves
+  - Scalar Multiplication
+  - BitVM
+license: CC-BY-4.0

@@ -39,3 +39,16 @@ The doubling step was easy to optimize, though: we noticed that the original imp
 it implemented `double(a)` as `add(a, a)`. However, we can do better by not zipping the same number with itself, but
 simply duplicating the limb at each step and carrying the overflow. This way, we can significantly reduce the number of operations
 since the doubling step is used 254 times in the multiplication algorithm.
+
+## How to cite?
+
+```bibtex
+@misc{cryptoeprint:2024/1236,
+    author = {Dmytro Zakharov and Oleksandr Kurbatov and Manish Bista and Belove Bist},
+    title = {Optimizing Big Integer Multiplication on Bitcoin: Introducing w-windowed Approach},
+    howpublished = {Cryptology ePrint Archive, Paper 2024/1236},
+    year = {2024},
+    note = {\url{https://eprint.iacr.org/2024/1236}},
+    url = {https://eprint.iacr.org/2024/1236}
+}
+```
