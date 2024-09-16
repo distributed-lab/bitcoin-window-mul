@@ -1,6 +1,6 @@
 # :heavy_multiplication_x: Fast Windowed Multiplication implementation in Bitcoin
 
-This repository contains the implementation of the Fast Multiplication algorithm in _Bitcoin_ for two 254-bit numbers using $w$-window multiplication. 
+This repository contains the implementation of the Fast Multiplication algorithm in _Bitcoin_ for two 254-bit numbers using $w$-window multiplication.
 
 ## :interrobang: How to test?
 

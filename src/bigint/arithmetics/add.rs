@@ -1,4 +1,5 @@
 use crate::bigint::NonNativeBigIntImpl;
+use crate::traits::integer::NonNativeLimbInteger;
 use crate::treepp::*;
 
 #[allow(non_snake_case)]

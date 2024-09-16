@@ -1,4 +1,4 @@
-use crate::{bigint::NonNativeBigIntImpl, treepp::*};
+use crate::{bigint::NonNativeBigIntImpl, traits::integer::NonNativeLimbInteger, treepp::*};
 use std::cmp::min;
 
 #[allow(non_snake_case)]

@@ -86,8 +86,14 @@ pub trait NonNativeInteger: Comparable + Arithmeticable + Bitable {
 /// Note that the only requirement is to specify the total number of limbs and the size of each limb.
 #[allow(non_snake_case)]
 pub trait NonNativeLimbInteger: NonNativeInteger {
+    /// The total number of bits in the integer.
     const N_BITS: usize;
+    /// The size of each limb in bits.
     const LIMB_SIZE: usize;
+    /// The total number of limbs in the integer.
+    /// 
+    /// **NOTE**: This is always calculated as `(N_BITS + LIMB_SIZE - 1) / LIMB_SIZE`.
+    const N_LIMBS: usize = (Self::N_BITS + Self::LIMB_SIZE - 1) / Self::LIMB_SIZE;
 
     /// Multiplies the top two big integers on the stack to get a big integer that is of type Q
     /// larger than the original type (for example, multiplying two 32-bit integers to get a 64-bit integer).

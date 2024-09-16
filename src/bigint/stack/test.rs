@@ -1,7 +1,7 @@
 use crate::bigint::{NonNativeBigIntImpl, U254, U508};
 use crate::debug::print_script_size;
 use crate::traits::comparable::Comparable;
-use crate::traits::integer::NonNativeInteger;
+use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
 use crate::treepp::{execute_script, pushable};
 use bitcoin_script::script;
 use num_bigint::{BigUint, RandomBits};

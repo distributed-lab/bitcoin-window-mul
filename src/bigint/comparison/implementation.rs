@@ -1,4 +1,4 @@
-use crate::{bigint::NonNativeBigIntImpl, treepp::*};
+use crate::{bigint::NonNativeBigIntImpl, traits::integer::NonNativeLimbInteger, treepp::*};
 
 #[allow(non_snake_case)]
 impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LIMB_SIZE> {
