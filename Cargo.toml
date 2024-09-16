@@ -1,5 +1,5 @@
 [package]
-name = "fastmul"
+name = "bitcoin-window-mul"
 version = "0.1.0"
 edition = "2021"
 exclude = ["tests"]

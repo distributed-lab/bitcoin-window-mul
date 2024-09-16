@@ -329,6 +329,37 @@ dependencies = [
 ]
 
 [[package]]
+name = "bitcoin-window-mul"
+version = "0.1.0"
+dependencies = [
+ "ark-bn254",
+ "ark-ec",
+ "ark-ff",
+ "ark-std",
+ "bitcoin",
+ "bitcoin-script",
+ "bitcoin-script-stack",
+ "bitcoin-scriptexec",
+ "esplora-client",
+ "hex",
+ "konst",
+ "lazy_static",
+ "num-bigint",
+ "num-traits",
+ "paste",
+ "prettytable-rs",
+ "rand",
+ "rand_chacha",
+ "seq-macro",
+ "serde",
+ "serde_json",
+ "sha2",
+ "strum",
+ "strum_macros",
+ "tokio",
+]
+
+[[package]]
 name = "bitcoin_hashes"
 version = "0.13.0"
 source = "git+https://github.com/rust-bitcoin/rust-bitcoin?branch=bitvm#48efda928ae569a8fdee4ff5cc951646ab280205"
@@ -602,37 +633,6 @@ dependencies = [
  "minreq",
  "reqwest",
  "serde",
-]
-
-[[package]]
-name = "fastmul"
-version = "0.1.0"
-dependencies = [
- "ark-bn254",
- "ark-ec",
- "ark-ff",
- "ark-std",
- "bitcoin",
- "bitcoin-script",
- "bitcoin-script-stack",
- "bitcoin-scriptexec",
- "esplora-client",
- "hex",
- "konst",
- "lazy_static",
- "num-bigint",
- "num-traits",
- "paste",
- "prettytable-rs",
- "rand",
- "rand_chacha",
- "seq-macro",
- "serde",
- "serde_json",
- "sha2",
- "strum",
- "strum_macros",
- "tokio",
 ]
 
 [[package]]
