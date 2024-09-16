@@ -29,11 +29,7 @@ fn debug_mul_performance_comparison() {
     table.add_row(row!["Approach", "Overflowing", "Widening"]);
 
     // Add the data
-    table.add_row(row![
-        "Cmpeq",
-        "-",
-        cmpeq_script_widening.len(),
-    ]);
+    table.add_row(row!["Cmpeq", "-", cmpeq_script_widening.len(),]);
     table.add_row(row![
         "BitVM bigint",
         naive_script_overflowing.len(),

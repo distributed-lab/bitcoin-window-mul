@@ -236,7 +236,7 @@ fn test_mul_width_3_nooverflow_precompute() {
 
     let expected_precomputed_values = {
         let mut precomputed_values: Vec<BigUint> = vec![];
-        for i in 0..1<<WIDTH {
+        for i in 0..1 << WIDTH {
             precomputed_values.push(i.to_biguint().unwrap() * a.clone());
         }
 
@@ -255,7 +255,7 @@ fn test_mul_width_3_nooverflow_precompute() {
     );
     assert_eq!(
         *expected_precomputed_values.last().unwrap(),
-        a.clone() * ((1<<WIDTH) - 1).to_biguint().unwrap(),
+        a.clone() * ((1 << WIDTH) - 1).to_biguint().unwrap(),
         "precomputed values are incorrect"
     );
 
