@@ -85,7 +85,7 @@ pub fn binary_to_be_naf(num_bits: usize) -> Script {
             OP_2DUP OP_BITAND OP_IF
                 // In case they are both 1, we need to change them to -1 and 0, while the carry must be one
                 OP_3DROP
-                1 (-1) 0
+                { 1 } { -1 } { 0 }
             OP_ENDIF
 
             OP_ROT

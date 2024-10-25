@@ -207,7 +207,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
         }
     }
 
-    /// Extends the big integer to the specified type.
+    /// Extends the big integer to the specified [`NonNativeLimbInteger`].
     pub(in super::super) fn handle_OP_EXTEND<T>() -> Script
     where
         T: NonNativeLimbInteger,
@@ -238,7 +238,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
         }
     }
 
-    /// Extends the big integer to the specified type.
+    /// Compresses the big integer to the specified [`NonNativeLimbInteger`].
     pub(in super::super) fn handle_OP_COMPRESS<T>() -> Script
     where
         T: NonNativeLimbInteger,
