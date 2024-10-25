@@ -204,6 +204,12 @@ where
     {
         T::OP_EXTEND::<Q>()
     }
+    fn OP_COMPRESS<Q>() -> Script
+    where
+        Q: NonNativeLimbInteger,
+    {
+        T::OP_COMPRESS::<Q>()
+    }
 }
 
 #[allow(non_snake_case)]

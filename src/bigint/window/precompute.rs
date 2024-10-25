@@ -3,7 +3,7 @@ use std::marker::PhantomData;
 use crate::traits::integer::NonNativeLimbInteger;
 use crate::treepp::*;
 
-pub(in super::super) struct WindowedPrecomputeTable<T, const WIDTH: usize, const NOOVERFLOW: bool>
+pub struct WindowedPrecomputeTable<T, const WIDTH: usize, const NOOVERFLOW: bool>
 where
     T: NonNativeLimbInteger,
 {

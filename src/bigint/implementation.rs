@@ -167,4 +167,10 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeInteger
     {
         Self::handle_OP_EXTEND::<T>()
     }
+    fn OP_COMPRESS<T>() -> Script
+    where
+        T: NonNativeLimbInteger,
+    {
+        Self::handle_OP_COMPRESS::<T>()
+    }
 }

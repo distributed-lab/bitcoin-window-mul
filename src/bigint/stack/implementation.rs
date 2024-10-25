@@ -207,7 +207,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
         }
     }
 
-    /// Extends the big integer to the specified type.
+    /// Extends the big integer to the specified [`NonNativeLimbInteger`].
     pub(in super::super) fn handle_OP_EXTEND<T>() -> Script
     where
         T: NonNativeLimbInteger,
@@ -221,6 +221,7 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
             "The integers to be extended must have the same number of bits in limb"
         );
 
+        // Calculating the number of limbs to add
         let n_limbs_self = (Self::N_BITS + Self::LIMB_SIZE - 1) / Self::LIMB_SIZE;
         let n_limbs_extension = (T::N_BITS + T::LIMB_SIZE - 1) / T::LIMB_SIZE;
         let n_limbs_add = n_limbs_extension - n_limbs_self;
@@ -233,6 +234,36 @@ impl<const N_BITS: usize, const LIMB_SIZE: usize> NonNativeBigIntImpl<N_BITS, LI
             { OP_CLONE(0, n_limbs_add) } // Pushing zeros to the stack
             for _ in 0..n_limbs_self {
                 { n_limbs_extension - 1 } OP_ROLL
+            }
+        }
+    }
+
+    /// Compresses the big integer to the specified [`NonNativeLimbInteger`].
+    pub(in super::super) fn handle_OP_COMPRESS<T>() -> Script
+    where
+        T: NonNativeLimbInteger,
+    {
+        assert!(
+            T::N_BITS < Self::N_BITS,
+            "The integer to be compressed to must have less bits than the current integer"
+        );
+        assert!(
+            T::LIMB_SIZE == Self::LIMB_SIZE,
+            "The integers to be compressed to must have the same number of bits in limb"
+        );
+
+        // Calculating the number of limbs to remove
+        let n_limbs_self = (Self::N_BITS + Self::LIMB_SIZE - 1) / Self::LIMB_SIZE;
+        let n_limbs_compress = (T::N_BITS + T::LIMB_SIZE - 1) / T::LIMB_SIZE;
+        let n_limbs_to_remove = n_limbs_self - n_limbs_compress;
+
+        if n_limbs_to_remove == 0 {
+            return script! {};
+        }
+
+        script! {
+            for i in 0..n_limbs_to_remove {
+                { Self::N_LIMBS - i - 1 } OP_ROLL OP_DROP
             }
         }
     }
