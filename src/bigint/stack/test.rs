@@ -488,3 +488,26 @@ fn test_254_bit_widening() {
         assert!(exec_result.success);
     }
 }
+
+#[test]
+/// Tests the extension of 254-bit number to 508-bit number and then
+/// compressing it back to 254-bit number.
+fn test_254_bit_compress() {
+    print_script_size("254-bit compression", U508::OP_COMPRESS::<U254>());
+
+    let mut prng = ChaCha20Rng::seed_from_u64(0);
+    for _ in 0..100 {
+        let a: BigUint = prng.sample(RandomBits::new(254));
+        let script = script! {
+            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U254::OP_EXTEND::<U508>() }
+            { U508::OP_COMPRESS::<U254>() }
+            { U254::OP_PUSH_U32LESLICE(&a.to_u32_digits()) }
+            { U254::OP_EQUALVERIFY(1, 0) }
+            OP_TRUE
+        };
+
+        let exec_result = execute_script(script);
+        assert!(exec_result.success);
+    }
+}

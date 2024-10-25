@@ -46,6 +46,11 @@ pub trait NonNativeInteger: Comparable + Arithmeticable + Bitable {
     where
         T: NonNativeLimbInteger;
 
+    /// Compresses the given [`NonNativeInteger`] back to the specified type.
+    fn OP_COMPRESS<T>() -> Script
+    where
+        T: NonNativeLimbInteger;
+
     // --- Stack operations ---
 
     /// Zips two [`NonNativeInteger`]s at specified depths.
