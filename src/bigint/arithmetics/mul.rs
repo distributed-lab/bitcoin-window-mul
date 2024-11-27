@@ -1,5 +1,4 @@
 use bitcoin::opcodes::all::{OP_ADD, OP_FROMALTSTACK, OP_SUB, OP_SWAP};
-use bitcoin_script_stack::debugger::pushable::Builder;
 use seq_macro::seq;
 
 use crate::bigint::arithmetics::add::limb_add_carry;
@@ -10,6 +9,7 @@ use crate::pseudo::OP_4MUL;
 use crate::traits::arithmeticable::Arithmeticable;
 use crate::traits::integer::{NonNativeInteger, NonNativeLimbInteger};
 use crate::traits::window::Windowable;
+use crate::treepp::pushable::Builder;
 use crate::{
     bigint::NonNativeBigIntImpl,
     treepp::{pushable, script, Script},

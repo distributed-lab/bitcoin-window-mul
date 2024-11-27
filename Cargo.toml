@@ -9,7 +9,6 @@ exclude = ["tests"]
 bitcoin              = { git = "https://github.com/rust-bitcoin/rust-bitcoin", branch = "bitvm", features = ["rand-std"]}
 bitcoin-script       = { git = "https://github.com/BitVM/rust-bitcoin-script" }
 bitcoin-scriptexec   = { git = "https://github.com/BitVM/rust-bitcoin-scriptexec/"}
-bitcoin-script-stack = { git = "https://github.com/FairgateLabs/rust-bitcoin-script-stack"}
 
 # Some default dependencies
 prettytable-rs = "0.10.0"
