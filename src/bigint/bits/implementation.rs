@@ -168,9 +168,11 @@ pub fn limb_to_le_bits_toaltstack(num_bits: usize) -> Script {
     if num_bits >= 2 {
         script! {
             { limb_to_le_bits_common(num_bits) }
-            for _ in 0..num_bits {
-                OP_TOALTSTACK
-            }
+            for _ in 0..num_bits { OP_TOALTSTACK }
+        }
+    } else if num_bits == 1 {
+        script! {
+            OP_TOALTSTACK
         }
     } else {
         script! {}
@@ -197,9 +199,11 @@ pub fn limb_to_be_bits_toaltstack(num_bits: usize) -> Script {
             OP_TOALTSTACK
             OP_TOALTSTACK
         }
-    } else {
+    } else if num_bits == 1 {
         script! {
             OP_TOALTSTACK
         }
+    } else {
+        script! {}
     }
 }
